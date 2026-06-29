@@ -1,94 +1,88 @@
-# 🌀 TyphoonPath — AI-Powered Typhoon Path Prediction
+# 🌀 TyphoonPath — AI 기반 태풍 경로 예측 서비스
 
-> Interactive typhoon path prediction service powered by LSTM deep learning, GBM machine learning, and real IBTrACS historical data.
-
----
-
-## 📌 Overview
-
-TyphoonPath lets users set a typhoon's starting point and meteorological conditions on a map, then predicts the path using a 4-level AI model chain. Built as part of an AX automation project over 3 days using the BMAD methodology.
-
-**Live Demo:** _Coming soon (Railway + Vercel)_
+> LSTM 딥러닝, GBM 머신러닝, IBTrACS 실제 태풍 데이터를 활용한 인터랙티브 태풍 경로 예측 서비스
 
 ---
 
-## 🖥️ Screenshots
+## 📌 프로젝트 소개
 
-| Map View | Prediction Result |
-|----------|------------------|
-| Set start point + conditions | Intensity-colored path + timeline |
-
----
-
-## ⚙️ Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, TypeScript, Vite, Leaflet.js |
-| Backend | FastAPI (Python 3.11+) |
-| ML / DL | PyTorch (LSTM), scikit-learn (GBM) |
-| AI Commentary | Claude Haiku (Anthropic API) |
-| Cache | Redis |
-| Data | IBTrACS WP — NOAA (1951–2024, 2,645 typhoons) |
-| Deploy | Vercel (Frontend) · Railway (Backend + Redis) |
+지도에서 태풍 발생 시작점과 기상 조건을 설정하면, AI 모델이 자동으로 경로를 예측합니다.
+4단계 폴백 예측 체인(LSTM → GBM → 유사태풍 블렌딩 → 물리모델)을 통해 항상 최선의 예측 결과를 제공합니다.
+BMAD 방법론(Analyst → PM → Architect → Scrum Master → Developer)으로 3일간 개발하였습니다.
 
 ---
 
-## 🤖 Prediction Model — 4-Level Fallback Chain
+## ⚙️ 기술 스택
+
+| 구분 | 기술 |
+|------|------|
+| 프론트엔드 | React 18, TypeScript, Vite, Leaflet.js |
+| 백엔드 | FastAPI (Python 3.11+) |
+| 머신러닝 / 딥러닝 | PyTorch (LSTM), scikit-learn (GBM) |
+| AI 기상 해설 | Claude Haiku (Anthropic API) |
+| 캐싱 | Redis |
+| 데이터 | IBTrACS WP — NOAA (1951~2024, 태풍 4,230개) |
+| 배포 | Vercel (프론트엔드) · Railway (백엔드 + Redis) |
+
+---
+
+## 🤖 예측 모델 — 4단계 폴백 체인
 
 ```
-Request
+예측 요청
   ↓
-① LSTM Seq2Seq + Bahdanau Attention  (ensemble: hidden=48/64/96)
-  ↓ fallback if < 5 points
-② GradientBoosting ML  (3 models: dlat / dlng / dpres)
-  ↓ fallback
-③ Analog Blending  (top-10 similar historical typhoons, weighted avg)
-  ↓ fallback
-④ Physics Model  (beta drift + SST-based intensity)
+① LSTM Seq2Seq + Bahdanau Attention  (앙상블: hidden=48/64/96)
+  ↓ 5포인트 미만 생성 시 폴백
+② GradientBoosting 머신러닝  (모델 3개: dlat / dlng / dpres)
+  ↓ 폴백
+③ 유사 태풍 블렌딩  (유사 태풍 10개 이동 벡터 가중평균)
+  ↓ 폴백
+④ 물리 모델  (Beta drift + SST 기반 강도 모델)
 ```
 
-### LSTM Architecture
-- **Encoder**: 4 steps (24h history) × 8 features → hidden state
-- **Attention**: Bahdanau attention over encoder outputs
-- **Decoder**: Auto-regressive, up to 40 steps (240h = 10 days)
-- **Features**: `dlat, dlng, dpres, lat_norm, lng_norm, pres_norm, sin_month, cos_month`
-- **Training**: L1Loss · Adam(lr=0.001) · CosineAnnealingLR · Early stopping (patience=12)
+### LSTM 모델 상세
 
-### GBM Features (11)
-`lat, lng, pressure, wind_1min_ms, wind_10min_ms, diameter_km, month, prev_dlat, prev_dlng, lat×sin(month), lat×cos(month)`
+- **인코더**: 과거 4스텝(24h) × 8피처 → 은닉 상태 생성
+- **어텐션**: Bahdanau Attention으로 중요한 시점 집중
+- **디코더**: 자동 회귀 방식, 최대 40스텝(240h = 10일) 예측
+- **입력 피처**: `dlat, dlng, dpres, lat_norm, lng_norm, pres_norm, sin_month, cos_month`
+- **훈련**: L1Loss · Adam(lr=0.001) · CosineAnnealingLR · 조기 종료(patience=12)
 
----
+### GBM 모델 입력 피처 (11개)
 
-## 📦 Dataset
-
-| Item | Value |
-|------|-------|
-| Source | IBTrACS WP v04r01 (NOAA) |
-| Typhoons | 4,230 (enhanced) |
-| Period | 1951 – 2024 |
-| Track points | 172,206+ |
-| Fields added | `wind_1min_ms`, `wind_10min_ms`, `diameter_km` |
+`lat, lng, pressure, wind_1min_ms, wind_10min_ms, diameter_km, month, prev_dlat, prev_dlng, lat×sin(월), lat×cos(월)`
 
 ---
 
-## 🗂️ Project Structure
+## 📦 데이터셋
+
+| 항목 | 내용 |
+|------|------|
+| 출처 | IBTrACS WP v04r01 (NOAA) |
+| 태풍 수 | 4,230개 (강화 버전) |
+| 기간 | 1951년 ~ 2024년 |
+| 총 관측점 | 172,206개+ |
+| 추가 필드 | `wind_1min_ms` (1분 풍속), `wind_10min_ms` (10분 풍속), `diameter_km` (최대직경) |
+
+---
+
+## 🗂️ 프로젝트 구조
 
 ```
 AX_project/
-├── frontend/                  # React + TypeScript
+├── frontend/                      # React + TypeScript
 │   └── src/
-│       ├── App.tsx            # Main app + 3-phase UX flow
-│       ├── api/typhoonApi.ts  # API client
-│       ├── types/typhoon.ts   # Type definitions
+│       ├── App.tsx                # 메인 앱 + 3단계 UX 플로우
+│       ├── api/typhoonApi.ts      # API 클라이언트
+│       ├── types/typhoon.ts       # 타입 정의
 │       └── components/Map/
-│           └── TyphoonMap.tsx # Leaflet map + intensity segments
+│           └── TyphoonMap.tsx     # Leaflet 지도 + 강도별 색상 구간
 │
-├── backend/                   # FastAPI
+├── backend/                       # FastAPI
 │   ├── app/
 │   │   ├── main.py
 │   │   ├── routers/
-│   │   │   └── predict.py     # 4-level fallback chain
+│   │   │   └── predict.py         # 4단계 폴백 체인
 │   │   ├── services/
 │   │   │   ├── lstm_prediction_service.py
 │   │   │   ├── ml_prediction_service.py
@@ -96,30 +90,30 @@ AX_project/
 │   │   │   └── claude_service.py
 │   │   └── models/schemas.py
 │   ├── data/
-│   │   ├── typhoons_v2.json   # Enhanced dataset (39MB)
+│   │   ├── typhoons_v2.json       # 강화 데이터셋 (39MB)
 │   │   ├── track_model_lat.pkl
 │   │   ├── track_model_lng.pkl
 │   │   ├── pres_model.pkl
-│   │   └── lstm_model_h*.pt   # LSTM ensemble weights
+│   │   └── lstm_model_h*.pt       # LSTM 앙상블 가중치
 │   └── scripts/
-│       ├── convert_data.py    # IBTrACS CSV → typhoons.json
-│       ├── enhance_data.py    # Add wind/diameter fields
-│       ├── train_model.py     # Train GBM models
-│       └── train_lstm.py      # Train LSTM ensemble
+│       ├── convert_data.py        # IBTrACS CSV → typhoons.json
+│       ├── enhance_data.py        # 풍속/직경 필드 추가
+│       ├── train_model.py         # GBM 모델 훈련
+│       └── train_lstm.py          # LSTM 앙상블 훈련
 │
-└── docs/                      # BMAD project docs
+└── docs/                          # BMAD 프로젝트 문서
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 실행 방법
 
-### Prerequisites
+### 사전 준비
 - Python 3.11+
 - Node.js 18+
 - Redis
 
-### 1. Backend Setup
+### 1. 백엔드 설정
 
 ```bash
 cd backend
@@ -128,36 +122,37 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Create `backend/.env`:
+`backend/.env` 파일 생성:
+
 ```env
-ANTHROPIC_API_KEY=your_key_here
+ANTHROPIC_API_KEY=발급받은_키
 REDIS_URL=redis://localhost:6379
 ```
 
-### 2. Train Models (first time only)
+### 2. 모델 훈련 (최초 1회)
 
 ```bash
-# Step 1: Convert raw CSV to JSON (skip if typhoons.json already exists)
+# 1단계: CSV → JSON 변환 (typhoons.json이 없는 경우)
 python scripts/convert_data.py
 
-# Step 2: Add wind/diameter fields
+# 2단계: 풍속/직경 필드 추가
 python scripts/enhance_data.py
 
-# Step 3: Train GBM models (~2 min)
+# 3단계: GBM 모델 훈련 (약 2분)
 python scripts/train_model.py
 
-# Step 4: Train LSTM ensemble (~10–30 min)
+# 4단계: LSTM 앙상블 훈련 (약 10~30분)
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 python scripts/train_lstm.py
 ```
 
-### 3. Run Backend
+### 3. 백엔드 실행
 
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 4. Frontend Setup
+### 4. 프론트엔드 실행
 
 ```bash
 cd frontend
@@ -165,53 +160,52 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`
+브라우저에서 `http://localhost:5173` 접속
 
 ---
 
-## 🗺️ How to Use
+## 🗺️ 사용 방법
 
-1. **Click on the map** to set the typhoon's starting point
-2. **Adjust sliders** — pressure, SST, 1-min wind, 10-min wind, diameter
-3. **Click "경로 예측하기"** to run prediction
-4. **View results**:
-   - Intensity-colored path (STY=red / TY=orange / TS=yellow / TD=blue)
-   - `+1일`, `+2일`... time labels every 24h
-   - Click any point for details (time, intensity, pressure, wind speed)
-   - Sidebar shows method badge, duration, intensity timeline bar
-   - AI weather commentary from Claude Haiku
-
----
-
-## 🔄 Prediction Method Badge
-
-| Badge | Method | Condition |
-|-------|--------|-----------|
-| 🧠 LSTM 딥러닝 | LSTM Seq2Seq+Attention | `.pt` model files present |
-| 🤖 GBM 머신러닝 | GradientBoosting | `.pkl` model files present |
-| 📊 유사 태풍 블렌딩 | Analog Blending | Historical data match found |
-| ⚙️ 물리 모델 | Physics | Always available (fallback) |
+1. **지도 클릭** → 태풍 발생 시작점 설정
+2. **슬라이더 조작** → 중심기압, 해수면 온도, 1분 풍속, 10분 풍속, 최대직경 설정
+3. **"경로 예측하기" 클릭** → AI 예측 실행
+4. **결과 확인**
+   - 강도별 색상 경로 (STY=빨강 / TY=주황 / TS=노랑 / TD=파랑)
+   - 24시간마다 `+1일`, `+2일`... 시간 레이블
+   - 포인트 클릭 시 상세 팝업 (경과시간, 강도, 기압, 풍속, 위경도)
+   - 사이드바: 예측 방법 배지, 총 지속시간, 강도 타임라인 바
+   - Claude Haiku AI 기상 해설
 
 ---
 
-## 🐛 Known Issues & Fixes
+## 🔖 예측 방법 배지
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| STY intensity never weakens | Pressure model kept strengthening | `lifecycle_dpres()` 3-phase model |
-| ML model never loads after training | `@lru_cache` caches `None` | Global dict, only stores on success |
-| Complex number error in training | Negative base with fractional exponent | `max(0, 1010 - pres)` clamping |
+| 배지 | 방법 | 조건 |
+|------|------|------|
+| 🧠 LSTM 딥러닝 | LSTM Seq2Seq + Attention | `.pt` 모델 파일 존재 시 |
+| 🤖 GBM 머신러닝 | GradientBoosting | `.pkl` 모델 파일 존재 시 |
+| 📊 유사 태풍 블렌딩 | Analog Blending | 유사 태풍 탐색 성공 시 |
+| ⚙️ 물리 모델 | 위도·기압·SST 공식 | 항상 사용 가능 (최후 폴백) |
 
 ---
 
-## 📄 License
+## 🐛 주요 버그 수정 이력
+
+| 버그 | 원인 | 해결 |
+|------|------|------|
+| STY 강도가 끝까지 유지됨 | 기압 모델이 계속 강화 방향으로 작동 | `lifecycle_dpres()` 3단계 생애주기 모델 도입 |
+| 훈련 후에도 ML 모델 미사용 | `@lru_cache`가 `None`을 캐시 | 전역 dict 캐시로 교체, 성공 시에만 저장 |
+| train_model.py 복소수 오류 | 음수^소수 지수 → complex 반환 | `max(0, 1010 - pres)` 클램핑 |
+| 예측 경로 미표시 | schemas.py 파일 일부 잘림 → 클래스 누락 | bash heredoc으로 전체 재작성 |
+
+---
+
+## 📄 라이선스
 
 MIT
 
 ---
 
-## 👤 Author
+## 👤 개발자
 
 **김동현** · [onthegroundplay403@gmail.com](mailto:onthegroundplay403@gmail.com)
-
-> Built with BMAD methodology (Analyst → PM → Architect → Scrum Master → Developer)
