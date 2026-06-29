@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# 환경변수
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# 대용량 데이터 파일 (원본 CSV)
+backend/data/ibtracs*.csv
+backend/data/typhoons_raw.csv
+
+# 훈련된 모델 (선택: 포함시키려면 주석 처리)
+# backend/data/*.pkl
+# backend/data/*.pt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude 세션
+.claude/

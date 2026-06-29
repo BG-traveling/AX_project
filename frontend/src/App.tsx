@@ -1,0 +1,431 @@
+import { useState, useEffect } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
+import TyphoonMap from './components/Map/TyphoonMap'
+import { postPredict } from './api/typhoonApi'
+import type { PredictedPoint, AnalogTyphoon } from './types/typhoon'
+import { INTENSITY_COLOR } from './types/typhoon'
+
+type Phase = 'pick' | 'config' | 'result'
+
+const DEFAULT_PRESSURE = 960
+const DEFAULT_SST = 29
+const DEFAULT_DIAMETER = 400
+
+function pressureToWind1min(p: number): number {
+  if (p >= 1010) return 0
+  return Math.round(Math.min(85, Math.pow(Math.max(0, 1010 - p), 0.644) * 3.92))
+}
+
+const METHOD_LABEL: Record<string, { label: string; color: string }> = {
+  lstm:            { label: '🧠 LSTM 딥러닝',       color: '#dc2626' },
+  ml:              { label: '🤖 GBM 머신러닝',       color: '#7c3aed' },
+  analog_blending: { label: '📊 유사 태풍 블렌딩',  color: '#0891b2' },
+  physics:         { label: '⚙️ 물리 모델',          color: '#65a30d' },
+}
+
+export default function App() {
+  const [phase, setPhase] = useState<Phase>('pick')
+  const [startPoint, setStartPoint] = useState<{ lat: number; lng: number } | null>(null)
+  const [pressure, setPressure] = useState(DEFAULT_PRESSURE)
+  const [sst, setSst] = useState(DEFAULT_SST)
+  const [wind1min, setWind1min] = useState(pressureToWind1min(DEFAULT_PRESSURE))
+  const [wind10min, setWind10min] = useState(Math.round(pressureToWind1min(DEFAULT_PRESSURE) * 0.88))
+  const [diameter, setDiameter] = useState(DEFAULT_DIAMETER)
+  const [loading, setLoading] = useState(false)
+  const [predictedTrack, setPredictedTrack] = useState<PredictedPoint[]>([])
+  const [analogs, setAnalogs] = useState<AnalogTyphoon[]>([])
+  const [explanation, setExplanation] = useState('')
+  const [predictionMethod, setPredictionMethod] = useState<string>('analog_blending')
+  const [showAnalogs, setShowAnalogs] = useState(true)
+
+  useEffect(() => {
+    const w1 = pressureToWind1min(pressure)
+    setWind1min(w1)
+    setWind10min(Math.round(w1 * 0.88))
+  }, [pressure])
+
+  function handleMapClick(lat: number, lng: number) {
+    if (phase === 'pick') {
+      setStartPoint({ lat, lng })
+      setPhase('config')
+    }
+  }
+
+  function handleReset() {
+    setPhase('pick')
+    setStartPoint(null)
+    setPressure(DEFAULT_PRESSURE)
+    setSst(DEFAULT_SST)
+    setWind1min(pressureToWind1min(DEFAULT_PRESSURE))
+    setWind10min(Math.round(pressureToWind1min(DEFAULT_PRESSURE) * 0.88))
+    setDiameter(DEFAULT_DIAMETER)
+    setPredictedTrack([])
+    setAnalogs([])
+    setExplanation('')
+    setPredictionMethod('analog_blending')
+  }
+
+  async function handlePredict() {
+    if (!startPoint) return
+    setLoading(true)
+    try {
+      const month = new Date().getMonth() + 1
+      const result = await postPredict({
+        start_lat:     startPoint.lat,
+        start_lng:     startPoint.lng,
+        pressure,
+        sst,
+        month,
+        wind_1min_ms:  wind1min  > 0 ? wind1min  : undefined,
+        wind_10min_ms: wind10min > 0 ? wind10min : undefined,
+        diameter_km:   diameter  > 0 ? diameter  : undefined,
+      })
+      setPredictedTrack(result.predicted_track)
+      setAnalogs(result.analogs)
+      setExplanation(result.ai_explanation)
+      setPredictionMethod(result.prediction_method ?? 'analog_blending')
+      setPhase('result')
+    } catch (e) {
+      alert('예측 실패: ' + (e as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const lastPoint  = predictedTrack[predictedTrack.length - 1]
+  const peakPoint  = predictedTrack.length
+    ? predictedTrack.reduce((a, b) => b.wind_ms > a.wind_ms ? b : a, predictedTrack[0])
+    : null
+
+  const intensityLabel: Record<string, string> = {
+    TD: '열대저압부', TS: '열대폭풍', TY: '태풍', STY: '강한태풍',
+  }
+
+  function pressureToIntensity(p: number): 'TD' | 'TS' | 'TY' | 'STY' {
+    if (p > 997) return 'TD'
+    if (p > 979) return 'TS'
+    if (p > 945) return 'TY'
+    return 'STY'
+  }
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', fontFamily: 'system-ui, sans-serif', background: '#f1f5f9' }}>
+
+      {/* ── 사이드바 ── */}
+      <aside style={sidebarStyle}>
+        <div style={logoStyle}>🌀 TyphoonPath</div>
+
+        <StepIndicator phase={phase} />
+
+        {/* STEP 1 */}
+        <Section>
+          <StepLabel step={1} label="시작점 설정" active={phase === 'pick'} done={phase !== 'pick'} />
+          {phase === 'pick' ? (
+            <div style={hintBox('#eff6ff', '#1d4ed8', '#bfdbfe')}>
+              🗺️ 지도를 클릭해 태풍 발생 위치를 정해주세요
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: '#475569', background: '#f8fafc', borderRadius: 8, padding: '8px 10px' }}>
+              📍 {startPoint?.lat.toFixed(2)}°N, {startPoint?.lng.toFixed(2)}°E
+              {phase !== 'result' && (
+                <button onClick={handleReset} style={{ marginLeft: 8, fontSize: 11, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                  변경
+                </button>
+              )}
+            </div>
+          )}
+        </Section>
+
+        {/* STEP 2 */}
+        <Section disabled={phase === 'pick'}>
+          <StepLabel step={2} label="기상 조건 설정" active={phase === 'config'} done={phase === 'result'} />
+          <div>
+            <SliderRow
+              label="중심기압" value={pressure} unit="hPa"
+              min={850} max={1010} step={5}
+              onChange={setPressure} disabled={phase !== 'config'}
+              leftLabel="850 (강)" rightLabel="1010 (약)"
+              valueColor={pressure < 920 ? '#ef4444' : pressure < 960 ? '#fb923c' : '#0ea5e9'}
+            />
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 10 }}>
+              예상 강도: <b style={{ color: INTENSITY_COLOR[pressureToIntensity(pressure)] }}>{intensityLabel[pressureToIntensity(pressure)]}</b>
+            </div>
+
+            <SliderRow
+              label="해수면 온도" value={sst} unit="°C"
+              min={20} max={35} step={1}
+              onChange={setSst} disabled={phase !== 'config'}
+              leftLabel="20°C (약화)" rightLabel="35°C (강화)"
+              valueColor={sst >= 30 ? '#ef4444' : sst >= 27 ? '#fb923c' : '#0ea5e9'}
+            />
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 10 }}>
+              {sst >= 28 ? '⚡ 강화 가능 구역' : sst >= 26 ? '🔵 유지 구역' : '❄️ 약화 구역'}
+            </div>
+
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', margin: '6px 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              상세 기상 조건 (선택)
+            </div>
+
+            <SliderRow
+              label="1분 풍속" value={wind1min} unit="m/s"
+              min={0} max={85} step={1}
+              onChange={setWind1min} disabled={phase !== 'config'}
+              leftLabel="0" rightLabel="85"
+              valueColor={wind1min >= 50 ? '#ef4444' : wind1min >= 33 ? '#fb923c' : '#0ea5e9'}
+            />
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 8 }}>
+              미국 NHC 기준 · 기압에서 자동 추정
+            </div>
+
+            <SliderRow
+              label="10분 풍속" value={wind10min} unit="m/s"
+              min={0} max={75} step={1}
+              onChange={setWind10min} disabled={phase !== 'config'}
+              leftLabel="0" rightLabel="75"
+              valueColor={wind10min >= 44 ? '#ef4444' : wind10min >= 29 ? '#fb923c' : '#0ea5e9'}
+            />
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 8 }}>
+              WMO·KMA 기준 · 1분 풍속의 약 88%
+            </div>
+
+            <SliderRow
+              label="최대직경" value={diameter} unit="km"
+              min={100} max={2000} step={50}
+              onChange={setDiameter} disabled={phase !== 'config'}
+              leftLabel="100" rightLabel="2000"
+              valueColor={diameter >= 1200 ? '#ef4444' : diameter >= 600 ? '#fb923c' : '#0ea5e9'}
+            />
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+              {diameter >= 1200 ? '🔴 초대형' : diameter >= 600 ? '🟠 대형' : diameter >= 300 ? '🔵 중형' : '⚪ 소형'} 태풍
+            </div>
+          </div>
+
+          <button
+            onClick={handlePredict}
+            disabled={phase !== 'config' || loading}
+            style={{ ...btnStyle, background: '#2563eb', color: '#fff', marginTop: 8 }}
+          >
+            {loading ? '🔄 경로 예측 중...' : '🌀 경로 예측하기'}
+          </button>
+        </Section>
+
+        {/* STEP 3 결과 */}
+        {phase === 'result' && lastPoint && peakPoint && (
+          <Section>
+            <StepLabel step={3} label="예측 결과" active={true} done={false} />
+
+            {/* 예측 방법 배지 */}
+            {(() => {
+              const m = METHOD_LABEL[predictionMethod] ?? METHOD_LABEL['analog_blending']
+              return (
+                <div style={{
+                  fontSize: 11, fontWeight: 700, color: m.color,
+                  background: m.color + '18', borderRadius: 6,
+                  padding: '3px 8px', display: 'inline-block', marginBottom: 6,
+                }}>
+                  {m.label}
+                </div>
+              )
+            })()}
+
+            {/* 요약 배지 */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+              <Badge label="지속시간" value={`${lastPoint.hour}h (${(lastPoint.hour / 24).toFixed(1)}일)`} color="#8b5cf6" />
+              <Badge label="최종강도" value={lastPoint.intensity} color={INTENSITY_COLOR[lastPoint.intensity]} />
+              <Badge label="최종기압" value={`${lastPoint.pressure.toFixed(0)} hPa`} color="#475569" />
+              <Badge label="최종풍속" value={`${lastPoint.wind_ms.toFixed(0)} m/s`} color="#0ea5e9" />
+            </div>
+
+            {/* 강도 타임라인 바 */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>강도 변화 타임라인</div>
+              <div style={{ display: 'flex', height: 18, borderRadius: 4, overflow: 'hidden', gap: 1 }}>
+                {predictedTrack.filter((_, i) => i % 2 === 0).map((p, i) => (
+                  <div key={i} title={`+${p.hour}h: ${p.intensity} ${p.wind_ms.toFixed(0)}m/s`}
+                    style={{ flex: 1, background: INTENSITY_COLOR[p.intensity], minWidth: 2 }} />
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+                <span>+0h</span><span>+{Math.round(lastPoint.hour / 2)}h</span><span>+{lastPoint.hour}h</span>
+              </div>
+            </div>
+
+            {/* 최대 강도 */}
+            <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 6, padding: '5px 8px', fontSize: 11, marginBottom: 8 }}>
+              ⚡ 최대 강도: <b style={{ color: '#92400e' }}>+{peakPoint.hour}h</b>&nbsp;—&nbsp;
+              <span style={{ color: INTENSITY_COLOR[peakPoint.intensity], fontWeight: 700 }}>{peakPoint.intensity}</span>&nbsp;
+              {peakPoint.wind_ms.toFixed(0)} m/s / {peakPoint.pressure.toFixed(0)} hPa
+            </div>
+
+            {/* 유사 태풍 토글 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <input type="checkbox" id="showAnalogs" checked={showAnalogs}
+                onChange={e => setShowAnalogs(e.target.checked)} />
+              <label htmlFor="showAnalogs" style={{ fontSize: 12, color: '#475569', cursor: 'pointer' }}>
+                유사 태풍 경로 표시 ({analogs.length}개)
+              </label>
+            </div>
+
+            {showAnalogs && analogs.map((a, i) => (
+              <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 2 }}>
+                <div style={{ width: 12, height: 3, background: ['#f59e0b','#a855f7','#06b6d4'][i], borderRadius: 2 }} />
+                <span style={{ fontWeight: 600 }}>{a.name_en} ({a.year})</span>
+                <span style={{ color: '#94a3b8' }}>유사도 {Math.round(a.similarity * 100)}%</span>
+              </div>
+            ))}
+
+            <button onClick={handleReset} style={{ ...btnStyle, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', marginTop: 8 }}>
+              🔄 다시 예측하기
+            </button>
+          </Section>
+        )}
+
+        {/* 강도 범례 */}
+        <Section style={{ marginTop: 'auto' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>강도 범례</div>
+          {(['STY', 'TY', 'TS', 'TD'] as const).map(code => (
+            <div key={code} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, marginBottom: 3 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: INTENSITY_COLOR[code] }} />
+              <span style={{ fontWeight: 600 }}>{code}</span>
+              <span style={{ color: '#94a3b8' }}>{intensityLabel[code]}</span>
+            </div>
+          ))}
+        </Section>
+      </aside>
+
+      {/* ── 메인 지도 ── */}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Banner phase={phase} loading={loading} />
+        <div style={{ flex: 1 }}>
+          <TyphoonMap
+            startPoint={startPoint}
+            predictedTrack={predictedTrack}
+            analogs={analogs}
+            isPickingStart={phase === 'pick'}
+            onMapClick={handleMapClick}
+            showAnalogs={showAnalogs}
+          />
+        </div>
+        {explanation && (
+          <div style={{ padding: '12px 20px', background: '#fff', borderTop: '1px solid #e2e8f0', maxHeight: 180, overflowY: 'auto' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0ea5e9', marginBottom: 6 }}>🤖 AI 기상 해설</div>
+            <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.7, margin: 0 }}>{explanation}</p>
+          </div>
+        )}
+        {loading && (
+          <div style={{ padding: '14px 20px', background: '#fff', borderTop: '1px solid #e2e8f0', color: '#94a3b8', fontSize: 13, textAlign: 'center' }}>
+            🌀 경로 예측 중... 유사 태풍 탐색 중...
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
+
+// ── 스타일 ────────────────────────────────────────────────
+const sidebarStyle: CSSProperties = {
+  width: 300, background: '#fff', borderRight: '1px solid #e2e8f0',
+  padding: '16px 12px', display: 'flex', flexDirection: 'column',
+  gap: 4, overflowY: 'auto', flexShrink: 0,
+}
+const logoStyle: CSSProperties = {
+  fontSize: 18, fontWeight: 800, color: '#1e293b',
+  marginBottom: 4, letterSpacing: '-0.02em',
+}
+const btnStyle: CSSProperties = {
+  width: '100%', padding: '10px 0', border: 'none',
+  borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer',
+}
+function hintBox(bg: string, text: string, border: string): CSSProperties {
+  return { background: bg, border: `1px solid ${border}`, borderRadius: 8, padding: '8px 10px', fontSize: 12, color: text, lineHeight: 1.5 }
+}
+
+// ── 서브 컴포넌트 ─────────────────────────────────────────
+function StepIndicator({ phase }: { phase: Phase }) {
+  const steps = ['pick', 'config', 'result']
+  const idx   = steps.indexOf(phase)
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0 10px' }}>
+      {steps.map((s, i) => (
+        <div key={s} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+          <div style={{
+            width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+            background: i < idx ? '#22c55e' : i === idx ? '#2563eb' : '#e2e8f0',
+            color: i <= idx ? '#fff' : '#94a3b8',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 700,
+          }}>
+            {i < idx ? '✓' : i + 1}
+          </div>
+          {i < steps.length - 1 && (
+            <div style={{ flex: 1, height: 2, background: i < idx ? '#22c55e' : '#e2e8f0' }} />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function StepLabel({ step, label, active, done }: { step: number; label: string; active: boolean; done: boolean }) {
+  return (
+    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, color: active ? '#2563eb' : done ? '#22c55e' : '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
+      {done ? '✅' : active ? '▶' : '○'} STEP {step}: {label}
+    </div>
+  )
+}
+
+function SliderRow({ label, value, unit, min, max, step, onChange, disabled, leftLabel, rightLabel, valueColor }: {
+  label: string; value: number; unit: string
+  min: number; max: number; step: number
+  onChange: (v: number) => void; disabled?: boolean
+  leftLabel?: string; rightLabel?: string; valueColor?: string
+}) {
+  return (
+    <div style={{ marginBottom: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>{label}</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: valueColor || '#1e293b' }}>
+          {value} <span style={{ fontSize: 10, fontWeight: 400 }}>{unit}</span>
+        </span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(Number(e.target.value))} disabled={disabled}
+        style={{ width: '100%', accentColor: valueColor || '#2563eb' }} />
+      {(leftLabel || rightLabel) && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#cbd5e1', marginTop: 1 }}>
+          <span>{leftLabel}</span><span>{rightLabel}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Badge({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div style={{ background: color + '1a', border: `1px solid ${color}44`, borderRadius: 6, padding: '3px 8px', fontSize: 11 }}>
+      <span style={{ color: '#64748b' }}>{label} </span>
+      <span style={{ fontWeight: 700, color }}>{value}</span>
+    </div>
+  )
+}
+
+function Banner({ phase, loading }: { phase: Phase; loading: boolean }) {
+  const messages: Record<Phase, string> = {
+    pick:   '🗺️ 지도에서 태풍 발생 위치를 클릭하세요',
+    config: '⚙️ 기상 조건을 설정하고 경로를 예측하세요',
+    result: '🌀 예측 완료! 각 포인트를 클릭하면 상세 정보가 나타납니다',
+  }
+  return (
+    <div style={{ padding: '10px 20px', background: phase === 'result' ? '#f0fdf4' : phase === 'config' ? '#eff6ff' : '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: 13, fontWeight: 600, color: phase === 'result' ? '#15803d' : phase === 'config' ? '#1d4ed8' : '#64748b' }}>
+      {loading ? '⏳ 예측 계산 중...' : messages[phase]}
+    </div>
+  )
+}
+
+function Section({ children, disabled, style }: { children: ReactNode; disabled?: boolean; style?: CSSProperties }) {
+  return (
+    <div style={{ padding: '8px 0', borderTop: '1px solid #f1f5f9', opacity: disabled ? 0.45 : 1, pointerEvents: disabled ? 'none' : undefined, ...style }}>
+      {children}
+    </div>
+  )
+}

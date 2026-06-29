@@ -1,0 +1,12 @@
+{
+  "hidden_sizes": [
+    48,
+    64,
+    96
+  ],
+  "past_steps": 4,
+  "future_steps": 40,
+  "km_error_6h": 13.6,
+  "val_size": 21896,
+  "train_size": 87587
+}

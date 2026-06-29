@@ -1,0 +1,26 @@
+{
+  "features": [
+    "lat",
+    "lng",
+    "pressure",
+    "wind_1min_ms",
+    "wind_10min_ms",
+    "diameter_km",
+    "month",
+    "prev_dlat",
+    "prev_dlng",
+    "lat_sin_month",
+    "lat_cos_month"
+  ],
+  "n_train": 191323,
+  "n_test": 47831,
+  "mae_lat_km": 9.46,
+  "mae_lng_km": 11.59,
+  "mae_pres_hpa": 2.807,
+  "pos_error_mean_km": 15.75,
+  "pos_error_median_km": 12.78,
+  "persistence_error_km": 15.9,
+  "skill_score_pct": 0.9,
+  "model_type": "GradientBoostingRegressor",
+  "n_estimators": 300
+}
