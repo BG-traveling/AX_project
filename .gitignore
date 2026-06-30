@@ -38,3 +38,5 @@ Thumbs.db
 
 # Claude 세션
 .claude/
+_archive/backend/data/*.csv
+_archive/root/*.zip
