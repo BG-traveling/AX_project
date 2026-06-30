@@ -101,7 +101,7 @@ def ml_predict(
     wind_10min_ms: Optional[float],
     diameter_km: Optional[float],
     month: int,
-    max_steps: int = 40,
+    max_steps: int = 80,   # 소멸 조건(pres≥1008) 도달까지 최대 480h
 ) -> list[PredictedPoint]:
     models = _load_models()
     if models is None:

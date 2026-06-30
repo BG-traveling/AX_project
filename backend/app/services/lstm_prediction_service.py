@@ -80,18 +80,18 @@ def _build_model(hidden_size: int):
     class Seq2Seq(nn.Module):
         def __init__(self, h):
             super().__init__()
-            self.encoder  = nn.LSTM(8, h, 2, batch_first=True, dropout=0.2)
-            self.decoder  = nn.LSTM(3 + h, h, 2, batch_first=True, dropout=0.2)
-            self.attn     = BahdanauAttention(h)
-            self.out_head = nn.Sequential(nn.Linear(h*2, h), nn.ReLU(), nn.Linear(h, 3))
+            self.encoder   = nn.LSTM(8, h, 2, batch_first=True, dropout=0.2)
+            self.decoder   = nn.LSTM(3 + h, h, 2, batch_first=True, dropout=0.2)
+            self.attention = BahdanauAttention(h)           # train_lstm.py와 동일
+            self.out_track = nn.Sequential(nn.Linear(h*2, h), nn.ReLU(), nn.Linear(h, 3))  # train_lstm.py와 동일
         def encode(self, src):
             return self.encoder(src)
         def decode_step(self, dec_inp, hc, enc_out):
             h, c = hc
-            ctx, _ = self.attn(h[-1], enc_out)
+            ctx, _ = self.attention(h[-1], enc_out)
             dec_in = torch.cat([dec_inp, ctx], dim=1).unsqueeze(1)
             out, (h, c) = self.decoder(dec_in, (h, c))
-            pred = self.out_head(torch.cat([out.squeeze(1), ctx], dim=1))
+            pred = self.out_track(torch.cat([out.squeeze(1), ctx], dim=1))
             return pred, (h, c)
 
     return Seq2Seq(hidden_size)
@@ -186,7 +186,7 @@ def lstm_predict(
     pressure: float,
     sst: float,
     month: int,
-    max_steps: int = 40,
+    max_steps: int = 80,   # 훈련 40스텝 초과분은 자동회귀로 연장 (정확도 다소 감소)
 ) -> list[PredictedPoint]:
     models = _load_models()
     if models is None:

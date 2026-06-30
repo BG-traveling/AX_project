@@ -154,7 +154,7 @@ def blend_predict(
     pressure: float,
     sst: float,
     analogs: list[AnalogTyphoon],
-    max_steps: int = 40,
+    max_steps: int = 80,   # 소멸 조건(pres≥1008) 도달까지 최대 480h
 ) -> list[PredictedPoint]:
     """유사 태풍 상대 이동 벡터 가중 평균 + 현실적 생애주기 기압 모델."""
     if not analogs:

@@ -1,43 +1,46 @@
+import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip, Marker, useMapEvents, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import type { PredictedPoint, AnalogTyphoon } from '../../types/typhoon'
 import { INTENSITY_COLOR } from '../../types/typhoon'
 
-// 시작점 마커 아이콘
+// ── 아이콘 ──────────────────────────────────────────────────
 const startIcon = L.divIcon({
   className: '',
   html: `<div style="
-    width: 36px; height: 36px;
-    background: #1d4ed8;
-    border: 3px solid #fff;
-    border-radius: 50%;
-    box-shadow: 0 0 0 3px #1d4ed8, 0 3px 10px rgba(0,0,0,0.4);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
+    width:36px;height:36px;background:#1d4ed8;border:3px solid #fff;
+    border-radius:50%;box-shadow:0 0 0 3px #1d4ed8,0 3px 10px rgba(0,0,0,.4);
+    display:flex;align-items:center;justify-content:center;font-size:16px;
   ">📍</div>`,
-  iconSize: [36, 36],
-  iconAnchor: [18, 18],
+  iconSize: [36, 36], iconAnchor: [18, 18],
 })
 
-// 24h 타임 레이블 아이콘 생성
+function makeTyphoonIcon(color: string) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:40px;height:40px;display:flex;align-items:center;justify-content:center;
+      font-size:28px;
+      filter:drop-shadow(0 0 6px ${color}) drop-shadow(0 0 12px ${color});
+      animation:spin 2s linear infinite;
+    ">🌀</div>
+    <style>
+      @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    </style>`,
+    iconSize: [40, 40], iconAnchor: [20, 20],
+  })
+}
+
 function makeTimeIcon(label: string, color: string) {
   return L.divIcon({
     className: '',
     html: `<div style="
-      background: ${color};
-      color: #fff;
-      border: 2px solid #fff;
-      border-radius: 4px;
-      padding: 2px 5px;
-      font-size: 10px;
-      font-weight: 800;
-      white-space: nowrap;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-      transform: translate(-50%, -150%);
+      background:${color};color:#fff;border:2px solid #fff;border-radius:4px;
+      padding:2px 5px;font-size:10px;font-weight:800;white-space:nowrap;
+      box-shadow:0 1px 4px rgba(0,0,0,.3);transform:translate(-50%,-150%);
     ">${label}</div>`,
-    iconSize: [0, 0],
-    iconAnchor: [0, 0],
+    iconSize: [0, 0], iconAnchor: [0, 0],
   })
 }
 
@@ -53,23 +56,47 @@ interface Props {
 }
 
 function ClickHandler({ onMapClick, isPickingStart }: { onMapClick: Props['onMapClick']; isPickingStart: boolean }) {
-  useMapEvents({
-    click(e) {
-      if (isPickingStart) onMapClick(e.latlng.lat, e.latlng.lng)
-    },
-  })
+  useMapEvents({ click(e) { if (isPickingStart) onMapClick(e.latlng.lat, e.latlng.lng) } })
   return null
 }
 
-export default function TyphoonMap({
-  startPoint, predictedTrack, analogs, isPickingStart, onMapClick, showAnalogs,
-}: Props) {
-  // 강도별 구간으로 경로를 분리
+export default function TyphoonMap({ startPoint, predictedTrack, analogs, isPickingStart, onMapClick, showAnalogs }: Props) {
+  // ── 애니메이션 상태 ─────────────────────────────────────
+  const [animIdx, setAnimIdx] = useState(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    // 새 예측 데이터가 들어오면 처음부터 재생
+    if (predictedTrack.length === 0) { setAnimIdx(0); return }
+
+    setAnimIdx(0)
+    if (intervalRef.current) clearInterval(intervalRef.current)
+
+    // 150ms 간격으로 한 포인트씩 공개
+    intervalRef.current = setInterval(() => {
+      setAnimIdx(prev => {
+        if (prev >= predictedTrack.length - 1) {
+          clearInterval(intervalRef.current!)
+          return prev
+        }
+        return prev + 1
+      })
+    }, 150)
+
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
+  }, [predictedTrack])
+
+  // 현재 애니메이션 인덱스까지만 렌더링
+  const visibleTrack = predictedTrack.slice(0, animIdx + 1)
+  const isAnimating = animIdx < predictedTrack.length - 1 && predictedTrack.length > 0
+  const currentPoint = visibleTrack[visibleTrack.length - 1]
+
+  // 강도별 구간 분리
   const segments: { positions: [number, number][]; color: string }[] = []
-  for (let i = 0; i < predictedTrack.length - 1; i++) {
-    const p = predictedTrack[i]
+  for (let i = 0; i < visibleTrack.length - 1; i++) {
+    const p = visibleTrack[i]
     segments.push({
-      positions: [[p.lat, p.lng], [predictedTrack[i + 1].lat, predictedTrack[i + 1].lng]],
+      positions: [[p.lat, p.lng], [visibleTrack[i + 1].lat, visibleTrack[i + 1].lng]],
       color: INTENSITY_COLOR[p.intensity],
     })
   }
@@ -92,9 +119,7 @@ export default function TyphoonMap({
           key={analog.id}
           positions={analog.track.map(p => [p.lat, p.lng])}
           color={ANALOG_COLORS[idx % ANALOG_COLORS.length]}
-          weight={2}
-          opacity={0.4}
-          dashArray="6 4"
+          weight={2} opacity={0.4} dashArray="6 4"
         >
           <Tooltip sticky>
             <span style={{ fontSize: 12 }}>
@@ -105,22 +130,18 @@ export default function TyphoonMap({
         </Polyline>
       ))}
 
-      {/* ── 예측 경로 — 강도별 색상 구간 ── */}
+      {/* ── 예측 경로 — 강도별 색상 구간 (애니메이션) ── */}
       {segments.map((seg, i) => (
-        <Polyline
-          key={`seg-${i}`}
-          positions={seg.positions}
-          color={seg.color}
-          weight={4}
-          opacity={0.9}
-        />
+        <Polyline key={`seg-${i}`} positions={seg.positions} color={seg.color} weight={4} opacity={0.9} />
       ))}
 
-      {/* ── 예측 포인트 마커 ── */}
-      {predictedTrack.map((p, i) => {
-        const isDay = p.hour % 24 === 0 && p.hour > 0   // 24h 단위 레이블
+      {/* ── 지나간 경로 포인트 마커 (애니메이션 완료 구간) ── */}
+      {visibleTrack.map((p, i) => {
+        // 현재 태풍 아이콘 위치(마지막)는 별도 렌더링
+        if (isAnimating && i === visibleTrack.length - 1) return null
+        const isDay  = p.hour % 24 === 0 && p.hour > 0
         const isFirst = i === 0
-        const isLast = i === predictedTrack.length - 1
+        const isLast  = !isAnimating && i === predictedTrack.length - 1
         const showLabel = isDay || isLast
 
         return (
@@ -147,22 +168,10 @@ export default function TyphoonMap({
                 </div>
                 <table style={{ borderCollapse: 'collapse', width: '100%' }}>
                   <tbody>
-                    <tr>
-                      <td style={{ color: '#64748b', paddingRight: 8 }}>강도</td>
-                      <td style={{ fontWeight: 700, color: INTENSITY_COLOR[p.intensity] }}>{p.intensity}</td>
-                    </tr>
-                    <tr>
-                      <td style={{ color: '#64748b' }}>기압</td>
-                      <td><b>{p.pressure.toFixed(0)}</b> hPa</td>
-                    </tr>
-                    <tr>
-                      <td style={{ color: '#64748b' }}>풍속</td>
-                      <td><b>{p.wind_ms.toFixed(1)}</b> m/s</td>
-                    </tr>
-                    <tr>
-                      <td style={{ color: '#64748b' }}>위치</td>
-                      <td>{p.lat.toFixed(2)}°N {p.lng.toFixed(2)}°E</td>
-                    </tr>
+                    <tr><td style={{ color: '#64748b', paddingRight: 8 }}>강도</td><td style={{ fontWeight: 700, color: INTENSITY_COLOR[p.intensity] }}>{p.intensity}</td></tr>
+                    <tr><td style={{ color: '#64748b' }}>기압</td><td><b>{p.pressure.toFixed(0)}</b> hPa</td></tr>
+                    <tr><td style={{ color: '#64748b' }}>풍속</td><td><b>{p.wind_ms.toFixed(1)}</b> m/s</td></tr>
+                    <tr><td style={{ color: '#64748b' }}>위치</td><td>{p.lat.toFixed(2)}°N {p.lng.toFixed(2)}°E</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -171,9 +180,9 @@ export default function TyphoonMap({
         )
       })}
 
-      {/* ── 24h 시간 레이블 마커 ── */}
-      {predictedTrack
-        .filter((p, i) => p.hour % 24 === 0 && p.hour > 0 && i !== predictedTrack.length - 1)
+      {/* ── 24h 시간 레이블 (이미 지나간 구간만 표시) ── */}
+      {visibleTrack
+        .filter((p, i) => p.hour % 24 === 0 && p.hour > 0 && i < visibleTrack.length - 1)
         .map(p => (
           <Marker
             key={`lbl-${p.hour}`}
@@ -182,6 +191,17 @@ export default function TyphoonMap({
             interactive={false}
           />
         ))}
+
+      {/* ── 움직이는 태풍 아이콘 (애니메이션 중) ── */}
+      {isAnimating && currentPoint && (
+        <Marker
+          key={`typhoon-moving-${animIdx}`}
+          position={[currentPoint.lat, currentPoint.lng]}
+          icon={makeTyphoonIcon(INTENSITY_COLOR[currentPoint.intensity])}
+          interactive={false}
+          zIndexOffset={1000}
+        />
+      )}
 
       {/* ── 시작점 마커 ── */}
       {startPoint && (

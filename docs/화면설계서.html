@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TyphoonPath 화면설계서</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter','Apple SD Gothic Neo',sans-serif;background:#0b1420;color:#e2eaf4;padding:24px}
+h1{font-size:18px;font-weight:600;color:#7db9f5;margin-bottom:4px}
+.meta{font-size:12px;color:#4b6480;margin-bottom:20px}
+.screens-nav{display:flex;gap:8px;margin-bottom:16px}
+.nav-btn{padding:7px 16px;border-radius:6px;border:1px solid #1e2d3d;background:#09121c;color:#4b6480;font-size:12px;cursor:pointer;transition:all .15s}
+.nav-btn.active{background:#1e3a5f;color:#7db9f5;border-color:#2563eb}
+.screen-wrap{display:none;border:1px solid #1e2d3d;border-radius:12px;overflow:hidden}
+.screen-wrap.visible{display:block}
+
+/* App shell */
+.app{display:flex;flex-direction:column;height:560px;background:#0b1420}
+.banner{height:44px;display:flex;align-items:center;padding:0 16px;font-size:13px;font-weight:500;flex-shrink:0}
+.body{display:flex;flex:1;overflow:hidden}
+.sidebar{width:220px;background:#09121c;border-right:1px solid #1e2d3d;padding:16px;display:flex;flex-direction:column;gap:10px;flex-shrink:0}
+.map-area{flex:1;position:relative;overflow:hidden}
+
+/* Step indicator */
+.step-row{display:flex;align-items:center;gap:8px}
+.step-dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.step-done{background:#22c55e;color:#fff}
+.step-cur{background:#2563eb;color:#fff}
+.step-wait{background:#1e2d3d;color:#4b6480}
+.step-label{font-size:11px;font-weight:500}
+.step-sub{font-size:10px;color:#4b6480}
+.step-line{width:1px;height:14px;background:#1e2d3d;margin-left:11px;margin:3px 0 3px 11px}
+
+/* Sidebar elements */
+.sidebar-section{background:#0f1c2a;border-radius:6px;padding:10px}
+.sec-title{font-size:10px;color:#4b6480;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.hint-box{background:#0f1c2a;border:1px dashed #2a3d52;border-radius:6px;padding:12px;text-align:center}
+.hint-text{font-size:11px;color:#4b6480;line-height:1.6}
+.predict-btn{width:100%;padding:9px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer}
+.btn-enabled{background:#2563eb;color:#fff}
+.btn-disabled{background:#1e2d3d;color:#4b6480;cursor:not-allowed}
+.back-link{font-size:11px;color:#2563eb;text-align:center;cursor:pointer}
+
+/* Slider */
+.slider-label{display:flex;justify-content:space-between;margin-bottom:4px}
+.slider-name{font-size:11px;color:#8ba8c0}
+.slider-val{font-size:11px;font-weight:700}
+.slider-track{height:4px;border-radius:2px;position:relative;margin-bottom:4px}
+.slider-thumb{width:12px;height:12px;border-radius:50%;position:absolute;top:-4px;background:#fff}
+
+/* Map */
+.map-ocean{width:100%;height:100%;background:#0d1f35;position:relative}
+.map-grid{position:absolute;inset:0;background-image:linear-gradient(#1e2d3d33 1px,transparent 1px),linear-gradient(90deg,#1e2d3d33 1px,transparent 1px);background-size:40px 40px}
+.crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#ffffff33;font-size:40px}
+.start-marker{position:absolute;top:45%;left:55%;width:14px;height:14px;background:#2563eb;border-radius:50%;border:2px solid #fff;transform:translate(-50%,-50%)}
+
+/* Event annotation */
+.ev{position:absolute;background:#ffe700;color:#1a1000;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap;z-index:10}
+.ev::before{content:'▶ '}
+
+/* Loading */
+.load-overlay{position:absolute;inset:0;background:#0a162880;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:5}
+.spinner{width:32px;height:32px;border:3px solid #1e2d3d;border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Stats */
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.stat-card{background:#0f1c2a;border-radius:4px;padding:6px 8px}
+.stat-l{font-size:9px;color:#4b6480;margin-bottom:2px}
+.stat-v{font-size:12px;font-weight:700}
+
+/* Analog list */
+.analog-item{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #1e2d3d}
+.analog-cb{width:12px;height:12px;border-radius:2px;background:#2563eb;flex-shrink:0}
+.analog-name{font-size:10px;color:#8ba8c0}
+.analog-sim{font-size:10px;color:#22c55e;margin-left:auto}
+
+/* AI panel */
+.ai-panel{height:130px;background:#09121c;border-top:1px solid #1e2d3d;padding:12px;flex-shrink:0}
+.ai-header{font-size:11px;color:#4b6480;margin-bottom:6px}
+.ai-text{font-size:11px;color:#8ba8c0;line-height:1.7}
+
+/* Popup */
+.popup{position:absolute;background:#0f1c2a;border:1px solid #2563eb;border-radius:6px;padding:8px 10px;font-size:10px;color:#8ba8c0;white-space:nowrap;z-index:10}
+.popup-title{font-size:11px;font-weight:700;color:#e2eaf4;margin-bottom:3px}
+
+/* Path SVG */
+.path-svg{position:absolute;inset:0;width:100%;height:100%}
+</style>
+</head>
+<body>
+<h1>🌀 TyphoonPath — 화면설계서</h1>
+<div class="meta">SRS 기반 / 3-Phase UX Flow: pick → config → loading → result &nbsp;·&nbsp; 2026-06</div>
+
+<div class="screens-nav">
+  <button class="nav-btn active" onclick="show(0)">STEP 1 — 위치 선택</button>
+  <button class="nav-btn" onclick="show(1)">STEP 2 — 조건 설정</button>
+  <button class="nav-btn" onclick="show(2)">Loading</button>
+  <button class="nav-btn" onclick="show(3)">STEP 3 — 예측 결과</button>
+</div>
+
+<!-- SCREEN 0: STEP 1 pick -->
+<div class="screen-wrap visible" id="s0">
+  <div class="app">
+    <div class="banner" style="background:#1e3a5f;color:#7db9f5">
+      🌀 TyphoonPath — 태풍 경로 예측 시스템 &nbsp;·&nbsp; <span style="font-size:11px;opacity:.7">지도를 클릭해 태풍 발생 위치를 선택하세요</span>
+    </div>
+    <div class="body">
+      <div class="sidebar">
+        <div>
+          <div class="step-row"><div class="step-dot step-cur">1</div><div><div class="step-label" style="color:#7db9f5">위치 선택</div><div class="step-sub">지도 클릭</div></div></div>
+          <div class="step-line"></div>
+          <div class="step-row"><div class="step-dot step-wait">2</div><div><div class="step-label step-sub">조건 설정</div></div></div>
+          <div class="step-line"></div>
+          <div class="step-row"><div class="step-dot step-wait">3</div><div><div class="step-label step-sub">예측 결과</div></div></div>
+        </div>
+        <div class="hint-box" style="margin-top:4px">
+          <div style="font-size:24px;margin-bottom:8px">🗺️</div>
+          <div class="hint-text">태풍이 발생할 위치를<br>지도에서 클릭하세요<br><br><span style="color:#2563eb">서태평양 권장 (5°N~35°N)</span></div>
+        </div>
+        <div style="margin-top:auto">
+          <button class="predict-btn btn-disabled">STEP 2로 이동 ▶</button>
+        </div>
+      </div>
+      <div class="map-area">
+        <div class="map-ocean">
+          <div class="map-grid"></div>
+          <div class="crosshair">⊕</div>
+          <div class="ev" style="top:48%;left:50%;transform:translate(-50%,-200%)">handleMapClick(lat, lng)</div>
+          <div style="position:absolute;bottom:8px;left:8px;font-size:10px;color:#4b6480">📍 클릭: 태풍 발생 지점 설정 → phase: 'config'</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 1: STEP 2 config -->
+<div class="screen-wrap" id="s1">
+  <div class="app">
+    <div class="banner" style="background:#1e3a5f;color:#7db9f5">
+      🌀 TyphoonPath &nbsp;·&nbsp; <span style="font-size:11px;opacity:.7">태풍 초기 조건을 설정하고 예측을 시작하세요</span>
+    </div>
+    <div class="body">
+      <div class="sidebar">
+        <div>
+          <div class="step-row"><div class="step-dot step-done">✓</div><div><div class="step-label" style="color:#22c55e">위치 선택 완료</div><div class="step-sub">15.2°N, 132.4°E</div></div></div>
+          <div class="step-line" style="background:#22c55e55"></div>
+          <div class="step-row"><div class="step-dot step-cur">2</div><div><div class="step-label" style="color:#7db9f5">조건 설정</div></div></div>
+          <div class="step-line"></div>
+          <div class="step-row"><div class="step-dot step-wait">3</div><div><div class="step-label step-sub">예측 결과</div></div></div>
+        </div>
+        <div class="sidebar-section" style="position:relative">
+          <div class="sec-title">초기 기압 (hPa)</div>
+          <div class="slider-label">
+            <span class="slider-name">pressure</span>
+            <span class="slider-val" style="color:#f97316">940 hPa</span>
+          </div>
+          <div class="slider-track" style="background:#f97316aa">
+            <div class="slider-thumb" style="left:62%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:#4b6480"><span>880</span><span>1010</span></div>
+          <div class="ev" style="top:-8px;right:-4px">onChange → setPressure()</div>
+        </div>
+        <div class="sidebar-section" style="position:relative">
+          <div class="sec-title">해수면 온도 (°C)</div>
+          <div class="slider-label">
+            <span class="slider-name">SST</span>
+            <span class="slider-val" style="color:#ef4444">30.5 °C</span>
+          </div>
+          <div class="slider-track" style="background:#ef4444aa">
+            <div class="slider-thumb" style="left:70%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:#4b6480"><span>20</span><span>35</span></div>
+          <div class="ev" style="top:-8px;right:-4px">onChange → setSST()</div>
+        </div>
+        <div style="position:relative;text-align:center">
+          <span class="back-link">← 위치 변경</span>
+          <div class="ev" style="top:-14px;left:50%;transform:translateX(-50%)">onClick → setPhase('pick')</div>
+        </div>
+        <div style="margin-top:auto;position:relative">
+          <button class="predict-btn btn-enabled">🔮 경로 예측 시작</button>
+          <div class="ev" style="top:-14px;left:50%;transform:translateX(-50%)">onClick → handlePredict()</div>
+        </div>
+      </div>
+      <div class="map-area">
+        <div class="map-ocean">
+          <div class="map-grid"></div>
+          <div class="start-marker"></div>
+          <div class="ev" style="top:41%;left:53%">시작 지점 마커</div>
+          <div style="position:absolute;bottom:8px;left:8px;font-size:10px;color:#4b6480">📌 15.2°N, 132.4°E — 더블클릭으로 위치 재설정</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 2: Loading -->
+<div class="screen-wrap" id="s2">
+  <div class="app">
+    <div class="banner" style="background:#1e2d3d;color:#4b6480">
+      🌀 TyphoonPath &nbsp;·&nbsp; <span style="font-size:11px">AI 모델 예측 중... 잠시 기다려 주세요</span>
+    </div>
+    <div class="body">
+      <div class="sidebar">
+        <div>
+          <div class="step-row"><div class="step-dot step-done">✓</div><div><div class="step-label" style="color:#22c55e">위치 선택</div></div></div>
+          <div class="step-line" style="background:#22c55e55"></div>
+          <div class="step-row"><div class="step-dot step-done">✓</div><div><div class="step-label" style="color:#22c55e">조건 설정</div></div></div>
+          <div class="step-line"></div>
+          <div class="step-row"><div class="step-dot step-cur" style="background:#f59e0b">⟳</div><div><div class="step-label" style="color:#f59e0b">예측 중...</div></div></div>
+        </div>
+        <div class="sidebar-section" style="margin-top:4px">
+          <div class="sec-title">예측 파라미터</div>
+          <div style="font-size:10px;color:#4b6480;line-height:1.9">
+            📍 15.2°N, 132.4°E<br>
+            💨 초기 기압: 940 hPa<br>
+            🌡 SST: 30.5°C<br>
+            ⏱ 최대 480h (80 steps)
+          </div>
+        </div>
+        <div style="margin-top:auto">
+          <button class="predict-btn btn-disabled">⏳ 예측 중...</button>
+        </div>
+      </div>
+      <div class="map-area">
+        <div class="map-ocean">
+          <div class="map-grid"></div>
+          <div class="start-marker"></div>
+          <div class="load-overlay">
+            <div class="spinner"></div>
+            <div style="font-size:13px;color:#8ba8c0">LSTM → Analog → GBM → Physics</div>
+            <div style="font-size:10px;color:#4b6480">4단계 폴백 체인 실행 중 (POST /api/predict)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 3: STEP 3 result -->
+<div class="screen-wrap" id="s3">
+  <div class="app">
+    <div class="banner" style="background:#0d3320;color:#4ade80">
+      ✅ TyphoonPath &nbsp;·&nbsp; <span style="font-size:11px">예측 완료 — 경로 및 AI 해설을 확인하세요</span>
+      <span style="margin-left:auto;font-size:11px;cursor:pointer;color:#4ade80aa">↺ 새 예측</span>
+    </div>
+    <div class="body">
+      <div class="sidebar" style="overflow-y:auto">
+        <div>
+          <div class="step-row"><div class="step-dot step-done">✓</div><div><div class="step-label" style="color:#22c55e">위치 선택</div></div></div>
+          <div class="step-line" style="background:#22c55e55"></div>
+          <div class="step-row"><div class="step-dot step-done">✓</div><div><div class="step-label" style="color:#22c55e">조건 설정</div></div></div>
+          <div class="step-line" style="background:#22c55e55"></div>
+          <div class="step-row"><div class="step-dot step-done">✓</div><div><div class="step-label" style="color:#22c55e">예측 완료</div></div></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-card"><div class="stat-l">예측 방법</div><div class="stat-v" style="font-size:10px;color:#7db9f5">Analog Blending</div></div>
+          <div class="stat-card"><div class="stat-l">예측 시간</div><div class="stat-v">480h</div></div>
+          <div class="stat-card"><div class="stat-l">최저 기압</div><div class="stat-v" style="color:#f97316">895hPa</div></div>
+          <div class="stat-card"><div class="stat-l">최대 풍속</div><div class="stat-v" style="color:#ef4444">65m/s</div></div>
+        </div>
+        <div class="sidebar-section" style="position:relative">
+          <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center">
+            유사 태풍 <span id="toggle-btn" style="color:#2563eb;cursor:pointer;font-size:10px">▼ 숨기기</span>
+          </div>
+          <div id="analog-list">
+            <div class="analog-item"><div class="analog-cb"></div><div class="analog-name">볼라벤 (2012)</div><div class="analog-sim">92%</div></div>
+            <div class="analog-item"><div class="analog-cb"></div><div class="analog-name">루사 (2002)</div><div class="analog-sim">87%</div></div>
+            <div class="analog-item"><div class="analog-cb" style="background:#1e2d3d"></div><div class="analog-name">매미 (2003)</div><div class="analog-sim" style="color:#4b6480">81%</div></div>
+          </div>
+          <div class="ev" style="bottom:-10px;right:0">onToggle → setShowAnalogs()</div>
+        </div>
+        <div style="margin-top:auto;position:relative">
+          <button class="predict-btn" style="background:#0f3320;border:1px solid #22c55e;color:#4ade80;cursor:pointer">↺ 새 예측 시작</button>
+          <div class="ev" style="top:-14px;left:50%;transform:translateX(-50%)">onClick → handleReset() → phase:'pick'</div>
+        </div>
+      </div>
+      <div class="map-area">
+        <div class="map-ocean">
+          <div class="map-grid"></div>
+          <svg class="path-svg" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="#ef4444"/>
+              </marker>
+            </defs>
+            <path d="M 280 230 Q 255 200 230 165 Q 205 130 180 100 Q 165 78 150 60" stroke="#ef4444" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+            <circle cx="280" cy="230" r="7" fill="#ef4444" stroke="#fff" stroke-width="2"/>
+            <circle cx="255" cy="200" r="5" fill="#f97316"/>
+            <circle cx="230" cy="165" r="5" fill="#f97316"/>
+            <circle cx="205" cy="130" r="5" fill="#eab308"/>
+            <circle cx="180" cy="100" r="5" fill="#22c55e"/>
+            <circle cx="165" cy="78" r="4" fill="#22c55e"/>
+            <circle cx="150" cy="60" r="4" fill="#22c55e"/>
+            <text x="286" y="228" fill="#e2eaf4" font-size="9">0h</text>
+            <text x="261" y="198" fill="#f97316" font-size="9">+48h</text>
+            <text x="236" y="163" fill="#f97316" font-size="9">+96h</text>
+            <text x="211" y="128" fill="#eab308" font-size="9">+168h</text>
+            <text x="186" y="98" fill="#22c55e" font-size="9">+240h</text>
+          </svg>
+          <div class="popup" style="top:28%;left:42%">
+            <div class="popup-title">+72h 예측</div>
+            기압: 912 hPa<br>
+            풍속: 58 m/s<br>
+            위치: 20.1°N, 127.3°E
+          </div>
+          <div class="ev" style="top:22%;left:12%">onMarkerClick → showPopup(step)</div>
+          <div style="position:absolute;bottom:8px;left:8px;display:flex;gap:8px;align-items:center">
+            <span style="font-size:9px;color:#ef4444">■</span><span style="font-size:9px;color:#4b6480">슈퍼태풍</span>
+            <span style="font-size:9px;color:#f97316">■</span><span style="font-size:9px;color:#4b6480">태풍</span>
+            <span style="font-size:9px;color:#eab308">■</span><span style="font-size:9px;color:#4b6480">강한 태풍</span>
+            <span style="font-size:9px;color:#22c55e">■</span><span style="font-size:9px;color:#4b6480">열대저압부</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ai-panel">
+      <div class="ai-header">🤖 AI 해설 — <span style="color:#2563eb">Claude Haiku</span></div>
+      <div class="ai-text">이 태풍은 초기 940hPa의 강한 세력으로 발생하여 서북서 방향으로 이동할 것으로 예측됩니다. 고해수면 온도(30.5°C)로 인해 향후 48시간 내 895hPa까지 급격히 발달하며, 약 72~96시간 후 22-25°N 부근에서 재귀 가능성이 높습니다. 유사 사례인 볼라벤(2012)과 92% 일치합니다.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(idx){
+  document.querySelectorAll('.screen-wrap').forEach((el,i)=>el.classList.toggle('visible',i===idx));
+  document.querySelectorAll('.nav-btn').forEach((btn,i)=>btn.classList.toggle('active',i===idx));
+}
+const tb=document.getElementById('toggle-btn');
+const al=document.getElementById('analog-list');
+if(tb&&al){
+  tb.onclick=()=>{
+    const h=al.style.display==='none';
+    al.style.display=h?'block':'none';
+    tb.textContent=h?'▼ 숨기기':'▶ 보기';
+  };
+}
+</script>
+</body>
+</html>
