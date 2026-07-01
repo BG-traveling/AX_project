@@ -56,6 +56,10 @@ async def predict_typhoon(req: PredictRequest):
     2순위: GBM ML 모델 (타당성 검사 통과 시)
     3순위: 물리 모델 (최후 폴백)
     """
+    import time
+    t0 = time.time()
+    print(f"[predict] 요청 수신 lat={req.start_lat} lng={req.start_lng} pres={req.pressure}", flush=True)
+
     method = "analog_blending"
 
     # 유사 태풍 탐색 (항상 실행 — 표시용 + Blending)
@@ -67,6 +71,7 @@ async def predict_typhoon(req: PredictRequest):
         top_n=10,
         display_n=3,
     )
+    print(f"[predict] analogs 탐색 완료 {len(blend_analogs)}개 ({time.time()-t0:.1f}s)", flush=True)
 
     predicted = []
 
@@ -155,6 +160,7 @@ async def predict_typhoon(req: PredictRequest):
         logger.info("물리 모델 채택 (최후 폴백)")
 
     # ── Claude AI 설명 ───────────────────────────────────────
+    print(f"[predict] 예측 완료 method={method} points={len(predicted)} ({time.time()-t0:.1f}s)", flush=True)
     explanation = ""
     try:
         explanation = await claude_service.generate_prediction_explanation(

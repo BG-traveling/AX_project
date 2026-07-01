@@ -1,11 +1,8 @@
 import os
-import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import typhoons, feedback, predict
 from app.core.redis import close_redis
-
-logger = logging.getLogger(__name__)
 
 app = FastAPI(title="TyphoonPath API", version="1.0.0")
 
@@ -36,9 +33,9 @@ async def startup():
         from app.services.typhoon_service import _load_data
         data = _load_data()
         count = len(data.get("typhoons", []))
-        logger.info("✅ typhoons.json 사전 로드 완료 — 태풍 %d개", count)
+        print(f"[startup] ✅ typhoons.json 로드 완료 — 태풍 {count}개", flush=True)
     except Exception as e:
-        logger.warning("⚠️ typhoons.json 사전 로드 실패: %s", e)
+        print(f"[startup] ⚠️ typhoons.json 로드 실패: {e}", flush=True)
 
 @app.on_event("shutdown")
 async def shutdown():
