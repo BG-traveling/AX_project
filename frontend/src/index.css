@@ -2,3 +2,121 @@
 body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 input[type="range"] { accent-color: #0ea5e9; }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── 레이아웃 — 데스크탑 기본 ────────────────────────── */
+.app-root {
+  display: flex;
+  height: 100vh;
+  background: #f1f5f9;
+  font-family: system-ui, sans-serif;
+}
+
+.sidebar {
+  width: 300px;
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.map-wrapper {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── 타임라인 슬라이더 바 ─────────────────────────────── */
+.timeline-bar {
+  padding: 10px 16px 8px;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ── AI 해설 패널 ─────────────────────────────────────── */
+.ai-panel {
+  padding: 12px 20px;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+/* ── 모바일 반응형 (768px 이하) ──────────────────────── */
+@media (max-width: 768px) {
+  .app-root {
+    flex-direction: column;
+    height: 100dvh; /* dynamic viewport height (iOS Safari 대응) */
+  }
+
+  /* 지도가 상단 55% 차지 */
+  .main-area {
+    order: 1;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .map-wrapper {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* 사이드바가 하단 패널로 전환 */
+  .sidebar {
+    order: 2;
+    width: 100%;
+    height: auto;
+    max-height: 45dvh;
+    border-right: none;
+    border-top: 2px solid #e2e8f0;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 10px 14px;
+    /* 드래그 힌트 핸들 */
+    background: #fff;
+  }
+
+  /* 모바일에서 사이드바 상단에 드래그 핸들 표시 */
+  .sidebar::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: #cbd5e1;
+    border-radius: 2px;
+    margin: 0 auto 10px;
+    flex-shrink: 0;
+  }
+
+  /* 타임라인 바 패딩 축소 */
+  .timeline-bar {
+    padding: 8px 12px 6px;
+  }
+
+  /* AI 해설 높이 제한 */
+  .ai-panel {
+    max-height: 100px;
+    padding: 8px 14px;
+  }
+}
+
+/* ── 초소형 화면 (480px 이하) ────────────────────────── */
+@media (max-width: 480px) {
+  .sidebar {
+    max-height: 50dvh;
+    padding: 8px 10px;
+  }
+
+  .timeline-bar {
+    padding: 6px 10px 4px;
+  }
+}

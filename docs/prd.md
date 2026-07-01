@@ -134,5 +134,30 @@
 
 ---
 
+## 9. P1 개선사항 (2026-07-01 구현 완료)
+
+> PM 분석 기반 — Windy·NHC·Nullschool 경쟁 서비스 비교 후 도출
+
+### FR-06: 불확실성 원뿔 (Cone of Uncertainty)
+- NHC·JTWC의 핵심 시그니처 기능을 TyphoonPath에 도입
+- 예측 경로 주변에 시간이 갈수록 넓어지는 반투명 파란색 원뿔 표시
+- 반경 계산: 0h=30km → 120h=300km (NHC 근사)
+- 토글 체크박스로 on/off 제어
+- 구현: `TyphoonMap.tsx` — `computeCone()` 함수 + Leaflet `Polygon` 컴포넌트
+
+### FR-07: 경로 시간 애니메이션 타임라인 슬라이더
+- 예측 경로를 6h 단위로 시간순으로 탐색하는 슬라이더 UI
+- ▶ 재생 / ⏸ 일시정지 / ⏭ 끝으로 버튼
+- 현재 시간점의 강도·기압·풍속·위치 실시간 표시
+- 구현: `App.tsx` — `timelineIdx`, `isPlaying` 상태 + 인터벌 제어
+
+### FR-08: 모바일 반응형 UI
+- 768px 이하: 사이드바가 하단 패널로 전환 (Bottom Sheet 패턴)
+- 지도가 상단 55vh, 사이드바가 하단 45dvh 구조
+- iOS Safari `100dvh` 대응
+- 구현: `index.css` — `.app-root`, `.sidebar`, `.main-area` 미디어 쿼리
+
+---
+
 ## 다음 단계
-→ Architecture 문서 작성 (Architect 단계)
+→ P2 개선사항 구현 — SST 히트맵 레이어, 과거 태풍 검색, 다크모드

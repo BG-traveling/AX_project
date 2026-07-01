@@ -4,7 +4,9 @@ import type {
   PredictResponse, PredictRequest,
 } from '../types/typhoon'
 
-const BASE = '/api'
+// 개발: vite proxy(/api → localhost:8000)
+// 프로덕션: VITE_API_BASE_URL=https://your-app.railway.app
+const BASE = (import.meta.env.VITE_API_BASE_URL ?? '') + '/api'
 
 export async function fetchYears(): Promise<number[]> {
   const res = await fetch(`${BASE}/typhoons/years`)

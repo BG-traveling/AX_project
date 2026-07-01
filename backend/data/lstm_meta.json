@@ -5,8 +5,17 @@
     96
   ],
   "past_steps": 4,
-  "future_steps": 40,
+  "future_steps": 60,
   "km_error_6h": 13.6,
+  "km_error_24h": 71.6,
+  "km_error_72h": 0.0,
   "val_size": 21896,
-  "train_size": 87587
+  "train_size": 87587,
+  "improvements": [
+    "scheduled_sampling",
+    "physics_loss",
+    "weighted_step_loss",
+    "future_steps_60",
+    "epochs_100"
+  ]
 }

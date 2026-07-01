@@ -131,7 +131,12 @@ def _load_models():
         if meta_path.exists():
             with open(meta_path) as f:
                 _meta_cache = json.load(f)
-            logger.info("LSTM 앙상블 로드 완료 — 6h오차 %.1f km", _meta_cache.get("km_error_6h", 0))
+            logger.info(
+                "LSTM 앙상블 로드 완료 — 6h:%.1fkm 24h:%.1fkm 72h:%.1fkm",
+                _meta_cache.get("km_error_6h", 0),
+                _meta_cache.get("km_error_24h", 0),
+                _meta_cache.get("km_error_72h", 0),
+            )
 
         _models_cache = loaded
         return _models_cache

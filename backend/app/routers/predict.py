@@ -10,11 +10,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/predict", tags=["predict"])
 
 
-def _is_plausible(predicted: list, start_lat: float, start_lng: float) -> bool:
+def _is_plausible(predicted: list, start_lat: float, start_lng: float,
+                  strict: bool = False) -> bool:
     """
     물리적 타당성 검사.
     서태평양 저위도 태풍(lat<25, lng>125)이 48h 내에 동쪽으로
     크게 이동하거나 남쪽으로 내려가면 비정상으로 판단.
+
+    strict=False (LSTM용): 임계값 완화 — 재훈련 전 모델도 활용
+    strict=True  (GBM용): 기존 엄격한 기준 유지
     """
     if len(predicted) < 8:
         return True   # 포인트 부족 시 기각 없이 통과
@@ -26,11 +30,17 @@ def _is_plausible(predicted: list, start_lat: float, start_lng: float) -> bool:
     net_dlng = p8.lng - p0.lng   # 48h 경도 변화 (양수=동진)
     net_dlat = p8.lat - p0.lat   # 48h 위도 변화 (음수=남진)
 
-    if net_dlng > 3.0:   # 48h 내 3도 이상 동진 → 비정상
-        logger.warning("타당성 검사 실패: 저위도 태풍이 동쪽으로 이동 (Δlng=%.1f) → 폴백", net_dlng)
+    # strict=False(LSTM): 관대한 임계값 / strict=True(GBM): 엄격한 임계값
+    lng_limit = 5.0 if not strict else 3.0   # 동진 허용 한도
+    lat_limit = -5.0 if not strict else -2.5  # 남진 허용 한도
+
+    if net_dlng > lng_limit:
+        logger.warning("타당성 검사 실패: 저위도 태풍이 동쪽으로 이동 (Δlng=%.1f, 기준=%.1f) → 폴백",
+                       net_dlng, lng_limit)
         return False
-    if net_dlat < -2.5:  # 48h 내 2.5도 이상 남진 → 비정상
-        logger.warning("타당성 검사 실패: 저위도 태풍이 남쪽으로 이동 (Δlat=%.1f) → 폴백", net_dlat)
+    if net_dlat < lat_limit:
+        logger.warning("타당성 검사 실패: 저위도 태풍이 남쪽으로 이동 (Δlat=%.1f, 기준=%.1f) → 폴백",
+                       net_dlat, lat_limit)
         return False
 
     return True
@@ -71,10 +81,16 @@ async def predict_typhoon(req: PredictRequest):
                 month=req.month,
                 max_steps=80,
             )
-            if len(predicted) >= 5 and _is_plausible(predicted, req.start_lat, req.start_lng):
+            if len(predicted) >= 5 and _is_plausible(predicted, req.start_lat, req.start_lng,
+                                                       strict=True):  # LSTM: 엄격한 기준 (v1 남향 편향 차단)
                 method = "lstm"
                 meta = get_lstm_meta()
-                logger.info("LSTM 예측 채택 (6h오차 %.1f km)", meta.get("km_error_6h", 0))
+                logger.info(
+                    "LSTM 예측 채택 — 6h:%.1fkm 24h:%.1fkm 72h:%.1fkm",
+                    meta.get("km_error_6h", 0),
+                    meta.get("km_error_24h", 0),
+                    meta.get("km_error_72h", 0),
+                )
             else:
                 logger.warning("LSTM 예측 기각 → Analog Blending")
                 predicted = []
@@ -113,7 +129,8 @@ async def predict_typhoon(req: PredictRequest):
                 month=req.month,
                 max_steps=80,
             )
-            if len(predicted) >= 5 and _is_plausible(predicted, req.start_lat, req.start_lng):
+            if len(predicted) >= 5 and _is_plausible(predicted, req.start_lat, req.start_lng,
+                                                       strict=True):  # GBM: 엄격한 기준
                 method = "ml"
                 meta = get_model_meta()
                 logger.info("GBM 예측 채택 (오차 %.1f km)", meta.get("pos_error_mean_km", 0))
@@ -132,7 +149,7 @@ async def predict_typhoon(req: PredictRequest):
             start_lng=req.start_lng,
             pressure=req.pressure,
             sst=req.sst,
-            max_steps=80,
+            steps=80,
         )
         method = "physics"
         logger.info("물리 모델 채택 (최후 폴백)")

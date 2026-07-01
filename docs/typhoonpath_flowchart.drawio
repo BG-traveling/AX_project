@@ -1,0 +1,520 @@
+<mxfile host="app.diagrams.net" modified="2026-06-30T00:00:00.000Z" agent="Claude" version="24.7.17">
+
+<!-- ======================================================
+     PAGE 1: UX 서비스 플로우
+     ====================================================== -->
+<diagram id="d1" name="UX 서비스 플로우">
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="1200" math="0" shadow="0">
+<root>
+<mxCell id="0"/><mxCell id="1" parent="0"/>
+
+<!-- Title -->
+<mxCell id="2" value="TyphoonPath — UX 서비스 플로우 (SRS v2.0)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=16;fontStyle=1;verticalAlign=middle;" vertex="1" parent="1">
+<mxGeometry x="175" y="18" width="550" height="30" as="geometry"/>
+</mxCell>
+
+<!-- START -->
+<mxCell id="3" value="START" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1e4d78;fontColor=#ffffff;strokeColor=#0d3559;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="345" y="68" width="130" height="44" as="geometry"/>
+</mxCell>
+
+<!-- STEP 1 BG -->
+<mxCell id="4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=50;" vertex="1" parent="1">
+<mxGeometry x="65" y="128" width="680" height="220" as="geometry"/>
+</mxCell>
+<mxCell id="5" value="STEP 1: 위치 선택  (phase: 'pick')" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#1e4d78;" vertex="1" parent="1">
+<mxGeometry x="74" y="133" width="300" height="18" as="geometry"/>
+</mxCell>
+
+<!-- F-01: Map click -->
+<mxCell id="6" value="[F-01] 지도 클릭&#xa;handleMapClick(lat, lng)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="295" y="156" width="230" height="50" as="geometry"/>
+</mxCell>
+
+<!-- Decision: valid location -->
+<mxCell id="7" value="서태평양 범위?&#xa;(0~40°N, 100~180°E)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="295" y="228" width="230" height="68" as="geometry"/>
+</mxCell>
+
+<!-- Error: out of range -->
+<mxCell id="8" value="범위 외 경고 표시" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="575" y="244" width="155" height="36" as="geometry"/>
+</mxCell>
+
+<!-- Marker + phase transition -->
+<mxCell id="9" value="파란 핀 마커 + 좌표 표시 / phase → 'config'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="265" y="310" width="290" height="28" as="geometry"/>
+</mxCell>
+
+<!-- STEP 2 BG -->
+<mxCell id="10" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;opacity=50;" vertex="1" parent="1">
+<mxGeometry x="65" y="358" width="680" height="245" as="geometry"/>
+</mxCell>
+<mxCell id="11" value="STEP 2: 조건 설정  (phase: 'config')" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#1e6627;" vertex="1" parent="1">
+<mxGeometry x="74" y="363" width="300" height="18" as="geometry"/>
+</mxCell>
+
+<!-- Pressure slider -->
+<mxCell id="12" value="[F-02] 기압 슬라이더&#xa;setPressure()&#xa;범위: 850 ~ 1010 hPa&#xa;색상: &lt;920=red / &lt;960=orange / else=blue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="75" y="386" width="210" height="68" as="geometry"/>
+</mxCell>
+
+<!-- SST slider -->
+<mxCell id="13" value="[F-02] SST 슬라이더&#xa;setSST()&#xa;범위: 20 ~ 35°C&#xa;색상: ≥30=red / ≥27=orange / else=blue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="535" y="386" width="210" height="68" as="geometry"/>
+</mxCell>
+
+<!-- Intensity label -->
+<mxCell id="14" value="강도 레이블 실시간 업데이트 (TD / TS / TY / STY)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="225" y="474" width="370" height="34" as="geometry"/>
+</mxCell>
+
+<!-- Predict button -->
+<mxCell id="15" value="예측 버튼 클릭  handlePredict()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007a2f;fontColor=#ffffff;strokeColor=#005920;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="305" y="528" width="210" height="44" as="geometry"/>
+</mxCell>
+
+<!-- LOADING BG -->
+<mxCell id="16" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;opacity=50;" vertex="1" parent="1">
+<mxGeometry x="65" y="620" width="680" height="163" as="geometry"/>
+</mxCell>
+<mxCell id="17" value="LOADING  (phase: 'loading')" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#6b5100;" vertex="1" parent="1">
+<mxGeometry x="74" y="625" width="250" height="18" as="geometry"/>
+</mxCell>
+
+<!-- POST /api/predict -->
+<mxCell id="18" value="POST /api/predict&#xa;4단계 폴백: LSTM → Analog → GBM → Physics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="255" y="648" width="310" height="50" as="geometry"/>
+</mxCell>
+
+<!-- Decision: API success -->
+<mxCell id="19" value="API 응답 성공?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="295" y="718" width="230" height="55" as="geometry"/>
+</mxCell>
+
+<!-- API Error -->
+<mxCell id="20" value="에러 배너 표시&#xa;재시도 안내" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="575" y="731" width="155" height="36" as="geometry"/>
+</mxCell>
+
+<!-- STEP 3 BG -->
+<mxCell id="21" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;opacity=50;" vertex="1" parent="1">
+<mxGeometry x="65" y="800" width="680" height="220" as="geometry"/>
+</mxCell>
+<mxCell id="22" value="STEP 3: 결과 확인  (phase: 'result')" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#5a006b;" vertex="1" parent="1">
+<mxGeometry x="74" y="805" width="280" height="18" as="geometry"/>
+</mxCell>
+
+<!-- F-03: Predicted track -->
+<mxCell id="23" value="[F-03, F-06]&#xa;예측 경로 표시&#xa;강도별 색상 마커&#xa;마커 클릭 → 상세 팝업" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="73" y="828" width="190" height="68" as="geometry"/>
+</mxCell>
+
+<!-- F-04: Analog typhoons -->
+<mxCell id="24" value="[F-04]&#xa;유사 과거 태풍 표시&#xa;점선 경로 (3개 색상)&#xa;체크박스 토글" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="315" y="828" width="190" height="68" as="geometry"/>
+</mxCell>
+
+<!-- F-05: AI explanation -->
+<mxCell id="25" value="[F-05]&#xa;AI 해설 생성 표시&#xa;Claude Haiku → 하단 패널&#xa;200자 이내 한국어" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="557" y="828" width="190" height="68" as="geometry"/>
+</mxCell>
+
+<!-- F-07: Reset decision -->
+<mxCell id="26" value="[F-07] 재예측 버튼?&#xa;handleReset()" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="295" y="912" width="230" height="65" as="geometry"/>
+</mxCell>
+
+<!-- END -->
+<mxCell id="27" value="END" style="ellipse;whiteSpace=wrap;html=1;fillColor=#b85450;fontColor=#ffffff;strokeColor=#9a3d3d;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="345" y="1010" width="130" height="44" as="geometry"/>
+</mxCell>
+
+<!-- ===== EDGES (Page 1) ===== -->
+<mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="3" target="6" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="6" target="7" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<mxCell id="e3" value="NO" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="7" target="8" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e4" value="재클릭" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="8" target="6" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="653" y="175"/><mxPoint x="525" y="175"/></Array></mxGeometry>
+</mxCell>
+
+<mxCell id="e5" value="YES" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" source="7" target="9" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="9" target="12" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="410" y="352"/><mxPoint x="180" y="352"/></Array></mxGeometry>
+</mxCell>
+<mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="9" target="13" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="410" y="352"/><mxPoint x="640" y="352"/></Array></mxGeometry>
+</mxCell>
+
+<mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="12" target="14" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="180" y="491"/><mxPoint x="225" y="491"/></Array></mxGeometry>
+</mxCell>
+<mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="13" target="14" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="640" y="491"/><mxPoint x="595" y="491"/></Array></mxGeometry>
+</mxCell>
+
+<mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="14" target="15" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="15" target="18" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="18" target="19" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<mxCell id="e13" value="NO" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="19" target="20" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e14" value="재시도" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="20" target="15" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="653" y="638"/><mxPoint x="515" y="638"/></Array></mxGeometry>
+</mxCell>
+
+<mxCell id="e15" value="YES" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="19" target="23" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="410" y="793"/><mxPoint x="168" y="793"/></Array></mxGeometry>
+</mxCell>
+<mxCell id="e16" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="19" target="24" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="410" y="793"/><mxPoint x="410" y="793"/></Array></mxGeometry>
+</mxCell>
+<mxCell id="e17" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="19" target="25" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="410" y="793"/><mxPoint x="652" y="793"/></Array></mxGeometry>
+</mxCell>
+
+<mxCell id="e18" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="23" target="26" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="168" y="945"/><mxPoint x="295" y="945"/></Array></mxGeometry>
+</mxCell>
+<mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="24" target="26" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e20" style="edgeStyle=orthogonalEdgeStyle;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="25" target="26" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="652" y="945"/><mxPoint x="525" y="945"/></Array></mxGeometry>
+</mxCell>
+
+<mxCell id="e21" value="YES (재예측)" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="26" target="6" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="44" y="945"/><mxPoint x="44" y="181"/><mxPoint x="295" y="181"/></Array></mxGeometry>
+</mxCell>
+<mxCell id="e22" value="NO" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" source="26" target="27" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+</root>
+</mxGraphModel>
+</diagram>
+
+<!-- ======================================================
+     PAGE 2: 시스템 아키텍처
+     ====================================================== -->
+<diagram id="d2" name="시스템 아키텍처">
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="750" math="0" shadow="0">
+<root>
+<mxCell id="0"/><mxCell id="1" parent="0"/>
+
+<!-- Title -->
+<mxCell id="2" value="TyphoonPath — 시스템 아키텍처 (SRS §2)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=16;fontStyle=1;verticalAlign=middle;" vertex="1" parent="1">
+<mxGeometry x="250" y="18" width="600" height="30" as="geometry"/>
+</mxCell>
+
+<!-- ===== FRONTEND SWIMLANE ===== -->
+<mxCell id="10" value="" style="swimlane;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+<mxGeometry x="30" y="60" width="200" height="580" as="geometry"/>
+</mxCell>
+<mxCell id="10lbl" value="Frontend&#xa;(Browser)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="30" y="60" width="200" height="30" as="geometry"/>
+</mxCell>
+
+<mxCell id="11" value="App.tsx&#xa;React 18 + TypeScript + Vite" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="45" y="110" width="170" height="45" as="geometry"/>
+</mxCell>
+<mxCell id="12" value="TyphoonMap.tsx&#xa;react-leaflet / OSM 타일&#xa;경로 애니메이션 (150ms/step)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="45" y="185" width="170" height="55" as="geometry"/>
+</mxCell>
+<mxCell id="13" value="Sidebar.tsx&#xa;StepIndicator / SliderRow&#xa;예측 결과 배지" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="45" y="265" width="170" height="55" as="geometry"/>
+</mxCell>
+<mxCell id="14" value="AI Panel&#xa;Claude 해설 텍스트 표시&#xa;하단 고정 (160px)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="45" y="345" width="170" height="55" as="geometry"/>
+</mxCell>
+<mxCell id="14b" value="State Machine&#xa;phase: pick→config→loading→result&#xa;predictedTrack / analogs / explanation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="45" y="425" width="170" height="60" as="geometry"/>
+</mxCell>
+
+<!-- ===== BACKEND SWIMLANE ===== -->
+<mxCell id="20" value="" style="swimlane;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+<mxGeometry x="285" y="60" width="220" height="580" as="geometry"/>
+</mxCell>
+<mxCell id="20lbl" value="Backend&#xa;(FastAPI)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="285" y="60" width="220" height="30" as="geometry"/>
+</mxCell>
+
+<mxCell id="21" value="POST /api/predict&#xa;predict.py router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007a2f;fontColor=#ffffff;strokeColor=#005920;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="305" y="110" width="180" height="44" as="geometry"/>
+</mxCell>
+<mxCell id="22" value="lstm_prediction_service.py&#xa;Seq2Seq + Bahdanau Attention&#xa;h48 / h64 / h96 앙상블 (0순위)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="305" y="185" width="180" height="55" as="geometry"/>
+</mxCell>
+<mxCell id="23" value="blend_service.py&#xa;Analog Blending&#xa;과거 태풍 경로 합성 (1순위)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="305" y="260" width="180" height="55" as="geometry"/>
+</mxCell>
+<mxCell id="24" value="ml_prediction_service.py&#xa;GBM (11 feature input)&#xa;위도 기반 기압 제약 (2순위)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="305" y="335" width="180" height="55" as="geometry"/>
+</mxCell>
+<mxCell id="25" value="prediction_service.py&#xa;물리 모델 (Beta drift + 재귀)&#xa;SST 강도 모델 (3순위)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="305" y="410" width="180" height="55" as="geometry"/>
+</mxCell>
+<mxCell id="26" value="claude_service.py&#xa;AI 경로 해설 생성" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="305" y="485" width="180" height="44" as="geometry"/>
+</mxCell>
+<mxCell id="26b" value="_is_plausible() 검증&#xa;비정상 경로 폴백 처리" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="305" y="549" width="180" height="40" as="geometry"/>
+</mxCell>
+
+<!-- ===== DATA SWIMLANE ===== -->
+<mxCell id="30" value="" style="swimlane;startSize=30;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+<mxGeometry x="565" y="60" width="220" height="580" as="geometry"/>
+</mxCell>
+<mxCell id="30lbl" value="Data / Storage" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="565" y="60" width="220" height="30" as="geometry"/>
+</mxCell>
+
+<mxCell id="31" value="typhoons.json&#xa;IBTrACS WP (1951~2024)&#xa;2,645 태풍 / 172,206 포인트&#xa;서버 기동 시 lru_cache 로드" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="585" y="120" width="180" height="80" as="geometry"/>
+</mxCell>
+<mxCell id="32" value="LSTM 모델 파일&#xa;h48.pt / h64.pt / h96.pt&#xa;(backend/models/)" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="585" y="230" width="180" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="33" value="GBM 모델 파일&#xa;(scikit-learn)" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="585" y="325" width="180" height="55" as="geometry"/>
+</mxCell>
+
+<!-- ===== EXTERNAL SWIMLANE ===== -->
+<mxCell id="40" value="" style="swimlane;startSize=30;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+<mxGeometry x="845" y="60" width="220" height="580" as="geometry"/>
+</mxCell>
+<mxCell id="40lbl" value="External API" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="845" y="60" width="220" height="30" as="geometry"/>
+</mxCell>
+
+<mxCell id="41" value="Anthropic API&#xa;claude-haiku-4-5-20251001&#xa;경로 설명 생성 (&lt;5s)&#xa;200자 한국어 출력" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673a6;fontColor=#ffffff;strokeColor=#7051a0;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="865" y="120" width="180" height="70" as="geometry"/>
+</mxCell>
+<mxCell id="42" value="OpenStreetMap&#xa;지도 타일 서빙&#xa;(Leaflet 연결)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="865" y="220" width="180" height="55" as="geometry"/>
+</mxCell>
+
+<!-- ===== EDGES (Page 2) ===== -->
+
+<!-- Frontend → Backend -->
+<mxCell id="ea1" value="POST /api/predict&#xa;(JSON: lat,lng,pressure,sst,month)" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#007a2f;fontColor=#007a2f;fontSize=10;" edge="1" source="11" target="21" parent="1">
+<mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="ea2" value="PredictResponse&#xa;(predicted_track,analogs,explanation)" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#1e4d78;fontColor=#1e4d78;fontSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="21" target="12" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="260" y="265"/></Array></mxGeometry>
+</mxCell>
+
+<!-- Backend → Data -->
+<mxCell id="ea3" value="태풍 DB 조회" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="23" target="31" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="ea4" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="22" target="32" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="ea5" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="24" target="33" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<!-- Backend → External -->
+<mxCell id="ea6" value="AI 해설 요청" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;fontSize=10;" edge="1" source="26" target="41" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<!-- Frontend → OSM -->
+<mxCell id="ea7" value="타일 요청" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;fontSize=10;" edge="1" source="12" target="42" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="215" y="275"/><mxPoint x="955" y="275"/></Array></mxGeometry>
+</mxCell>
+
+<!-- Router → Services (폴백 순서) -->
+<mxCell id="ea8" value="0순위" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="21" target="22" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="ea9" value="1순위" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="22" target="23" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="ea10" value="2순위" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="23" target="24" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="ea11" value="3순위" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="24" target="25" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="ea12" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="25" target="26b" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+</root>
+</mxGraphModel>
+</diagram>
+
+<!-- ======================================================
+     PAGE 3: 예측 알고리즘 — 4단계 폴백 체인
+     ====================================================== -->
+<diagram id="d3" name="예측 알고리즘 폴백 체인">
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="1100" math="0" shadow="0">
+<root>
+<mxCell id="0"/><mxCell id="1" parent="0"/>
+
+<!-- Title -->
+<mxCell id="2" value="TyphoonPath — 예측 알고리즘 4단계 폴백 체인" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=16;fontStyle=1;verticalAlign=middle;" vertex="1" parent="1">
+<mxGeometry x="175" y="18" width="600" height="30" as="geometry"/>
+</mxCell>
+
+<!-- INPUT -->
+<mxCell id="3" value="예측 요청 수신&#xa;{lat, lng, pressure, sst, month}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e4d78;fontColor=#ffffff;strokeColor=#0d3559;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="300" y="65" width="270" height="50" as="geometry"/>
+</mxCell>
+
+<!-- ===== LEVEL 0: LSTM ===== -->
+<mxCell id="10bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=50;" vertex="1" parent="1">
+<mxGeometry x="55" y="135" width="730" height="170" as="geometry"/>
+</mxCell>
+<mxCell id="10lbl" value="0순위: LSTM Seq2Seq (Bahdanau Attention)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#1e4d78;" vertex="1" parent="1">
+<mxGeometry x="64" y="140" width="380" height="18" as="geometry"/>
+</mxCell>
+
+<mxCell id="11" value="LSTM 모델 로드 확인&#xa;h48.pt / h64.pt / h96.pt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="300" y="160" width="270" height="45" as="geometry"/>
+</mxCell>
+<mxCell id="12" value="3개 모델 모두&#xa;로드됨?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="330" y="222" width="210" height="60" as="geometry"/>
+</mxCell>
+<mxCell id="13" value="앙상블 예측 (h48+h64+h96)&#xa;max_steps=80 (480h)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="610" y="237" width="160" height="38" as="geometry"/>
+</mxCell>
+
+<!-- Plausibility check for LSTM -->
+<mxCell id="14" value="_is_plausible() 검증&#xa;(동진 &gt;3° / 남진 &gt;2.5° 거부)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="600" y="295" width="180" height="44" as="geometry"/>
+</mxCell>
+<mxCell id="14d" value="통과?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="630" y="355" width="120" height="50" as="geometry"/>
+</mxCell>
+
+<!-- LSTM return -->
+<mxCell id="15" value="LSTM 결과 반환" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007a2f;fontColor=#ffffff;strokeColor=#005920;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="790" y="362" width="145" height="36" as="geometry"/>
+</mxCell>
+
+<!-- ===== LEVEL 1: ANALOG BLENDING ===== -->
+<mxCell id="20bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;opacity=50;" vertex="1" parent="1">
+<mxGeometry x="55" y="330" width="530" height="175" as="geometry"/>
+</mxCell>
+<mxCell id="20lbl" value="1순위: Analog Blending (IBTrACS 2,645개 탐색)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#1e6627;" vertex="1" parent="1">
+<mxGeometry x="64" y="335" width="400" height="18" as="geometry"/>
+</mxCell>
+
+<mxCell id="21" value="유사도 점수 계산&#xa;score = pos×0.5 + pres×0.3 + season×0.2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="75" y="358" width="270" height="45" as="geometry"/>
+</mxCell>
+<mxCell id="22" value="상위 3개 유사 태풍&#xa;경로 가중 합성&#xa;_lifecycle_dpres() 적용" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="75" y="418" width="270" height="50" as="geometry"/>
+</mxCell>
+<mxCell id="23" value="결과 유효?&#xa;(score ≥ 임계)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="370" y="423" width="185" height="55" as="geometry"/>
+</mxCell>
+<mxCell id="24" value="Analog 결과 반환" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007a2f;fontColor=#ffffff;strokeColor=#005920;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="790" y="434" width="145" height="36" as="geometry"/>
+</mxCell>
+
+<!-- ===== LEVEL 2: GBM ML ===== -->
+<mxCell id="30bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;opacity=50;" vertex="1" parent="1">
+<mxGeometry x="55" y="530" width="530" height="155" as="geometry"/>
+</mxCell>
+<mxCell id="30lbl" value="2순위: GBM ML (Gradient Boosting Machine)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#6b5100;" vertex="1" parent="1">
+<mxGeometry x="64" y="535" width="380" height="18" as="geometry"/>
+</mxCell>
+
+<mxCell id="31" value="11개 피처 입력&#xa;(lat, lng, pressure, sst, month 등)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="75" y="558" width="260" height="45" as="geometry"/>
+</mxCell>
+<mxCell id="32" value="GBM 예측&#xa;위도 기반 기압 제약 적용&#xa;max_steps=80" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="75" y="618" width="260" height="48" as="geometry"/>
+</mxCell>
+<mxCell id="33" value="결과 유효?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="370" y="625" width="185" height="48" as="geometry"/>
+</mxCell>
+<mxCell id="34" value="GBM 결과 반환" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007a2f;fontColor=#ffffff;strokeColor=#005920;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="790" y="630" width="145" height="36" as="geometry"/>
+</mxCell>
+
+<!-- ===== LEVEL 3: PHYSICS ===== -->
+<mxCell id="40bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;opacity=50;" vertex="1" parent="1">
+<mxGeometry x="55" y="710" width="530" height="180" as="geometry"/>
+</mxCell>
+<mxCell id="40lbl" value="3순위: 물리 모델 (최종 폴백, 항상 성공)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;fontStyle=1;fontColor=#6b0000;" vertex="1" parent="1">
+<mxGeometry x="64" y="715" width="380" height="18" as="geometry"/>
+</mxCell>
+
+<mxCell id="41" value="조향 벡터 계산 (위도 기반)&#xa;&lt;15°N: 북서진 (Beta drift)&#xa;15~22°N: 북북서진&#xa;22~28°N: 재귀 구간" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="75" y="737" width="220" height="75" as="geometry"/>
+</mxCell>
+<mxCell id="42" value="강도 변화 (SST + 위도)&#xa;SST≥28°C, 위도&lt;25°N → 발달&#xa;SST&lt;26°C, 위도&gt;35°N → 약화&#xa;wind = (1010-P)^0.644 × 3.92" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="310" y="737" width="260" height="75" as="geometry"/>
+</mxCell>
+<mxCell id="43" value="소멸 판정&#xa;P≥1008hPa 또는&#xa;위도&gt;65°N" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="80" y="825" width="170" height="55" as="geometry"/>
+</mxCell>
+<mxCell id="44" value="경로 포인트 누적&#xa;(최대 80 steps = 480h)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+<mxGeometry x="300" y="828" width="200" height="46" as="geometry"/>
+</mxCell>
+<mxCell id="45" value="물리 결과 반환" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#007a2f;fontColor=#ffffff;strokeColor=#005920;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+<mxGeometry x="790" y="832" width="145" height="36" as="geometry"/>
+</mxCell>
+
+<!-- ===== FINAL OUTPUT ===== -->
+<mxCell id="50" value="PredictResponse 조립&#xa;predicted_track + analogs + ai_explanation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e4d78;fontColor=#ffffff;strokeColor=#0d3559;fontSize=11;" vertex="1" parent="1">
+<mxGeometry x="290" y="930" width="290" height="50" as="geometry"/>
+</mxCell>
+
+<!-- ===== EDGES (Page 3) ===== -->
+<mxCell id="f1" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="3" target="11" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f2" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="11" target="12" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<!-- LSTM 로드 YES → 앙상블 예측 -->
+<mxCell id="f3" value="YES" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" source="12" target="13" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f4" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="13" target="14" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f5" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="14" target="14d" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f6" value="YES" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" source="14d" target="15" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<!-- LSTM 로드 NO → Analog -->
+<mxCell id="f7" value="NO (모델 없음)" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;strokeColor=#b85450;fontColor=#b85450;" edge="1" source="12" target="21" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="435" y="316"/><mxPoint x="210" y="316"/></Array></mxGeometry>
+</mxCell>
+
+<!-- Plausibility FAIL → Analog -->
+<mxCell id="f8" value="NO (비정상 경로)" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;strokeColor=#b85450;fontColor=#b85450;" edge="1" source="14d" target="21" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="690" y="420"/><mxPoint x="210" y="420"/></Array></mxGeometry>
+</mxCell>
+
+<!-- Analog flow -->
+<mxCell id="f9" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="21" target="22" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f10" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="22" target="23" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f11" value="YES" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" source="23" target="24" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<!-- Analog NO → GBM -->
+<mxCell id="f12" value="NO" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;strokeColor=#b85450;fontColor=#b85450;" edge="1" source="23" target="31" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="463" y="510"/><mxPoint x="205" y="510"/></Array></mxGeometry>
+</mxCell>
+
+<!-- GBM flow -->
+<mxCell id="f13" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="31" target="32" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f14" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="32" target="33" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f15" value="YES" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" source="33" target="34" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+<!-- GBM NO → Physics -->
+<mxCell id="f16" value="NO" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;strokeColor=#b85450;fontColor=#b85450;" edge="1" source="33" target="41" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="463" y="704"/><mxPoint x="185" y="704"/></Array></mxGeometry>
+</mxCell>
+
+<!-- Physics flow -->
+<mxCell id="f17" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="41" target="42" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f18" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="41" target="43" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f19" value="소멸" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" source="43" target="45" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="165" y="900"/><mxPoint x="862" y="900"/></Array></mxGeometry>
+</mxCell>
+<mxCell id="f20" value="계속" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" source="43" target="44" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="f21" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="42" target="43" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="440" y="810"/><mxPoint x="165" y="810"/></Array></mxGeometry>
+</mxCell>
+<mxCell id="f22" value="다음 스텝" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="44" target="41" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="295" y="851"/><mxPoint x="295" y="775"/></Array></mxGeometry>
+</mxCell>
+<mxCell id="f23" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" source="45" target="50" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="862" y="955"/><mxPoint x="580" y="955"/></Array></mxGeometry>
+</mxCell>
+
+<!-- Return paths → Final output -->
+<mxCell id="f24" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" source="15" target="50" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="862" y="955"/></Array></mxGeometry>
+</mxCell>
+<mxCell id="f25" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" source="24" target="50" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="862" y="955"/></Array></mxGeometry>
+</mxCell>
+<mxCell id="f26" style="edgeStyle=orthogonalEdgeStyle;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" source="34" target="50" parent="1">
+<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="862" y="955"/></Array></mxGeometry>
+</mxCell>
+
+</root>
+</mxGraphModel>
+</diagram>
+
+</mxfile>

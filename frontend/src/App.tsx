@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import TyphoonMap from './components/Map/TyphoonMap'
 import { postPredict } from './api/typhoonApi'
@@ -8,7 +8,7 @@ import { INTENSITY_COLOR } from './types/typhoon'
 type Phase = 'pick' | 'config' | 'result'
 
 const DEFAULT_PRESSURE = 960
-const DEFAULT_SST = 29
+const DEFAULT_SST      = 29
 const DEFAULT_DIAMETER = 400
 
 function pressureToWind1min(p: number): number {
@@ -17,26 +17,58 @@ function pressureToWind1min(p: number): number {
 }
 
 const METHOD_LABEL: Record<string, { label: string; color: string }> = {
-  lstm:            { label: '🧠 LSTM 딥러닝',       color: '#dc2626' },
-  ml:              { label: '🤖 GBM 머신러닝',       color: '#7c3aed' },
-  analog_blending: { label: '📊 유사 태풍 블렌딩',  color: '#0891b2' },
-  physics:         { label: '⚙️ 물리 모델',          color: '#65a30d' },
+  lstm:            { label: '🧠 LSTM 딥러닝',      color: '#dc2626' },
+  ml:              { label: '🤖 GBM 머신러닝',      color: '#7c3aed' },
+  analog_blending: { label: '📊 유사 태풍 블렌딩', color: '#0891b2' },
+  physics:         { label: '⚙️ 물리 모델',         color: '#65a30d' },
 }
 
 export default function App() {
-  const [phase, setPhase] = useState<Phase>('pick')
-  const [startPoint, setStartPoint] = useState<{ lat: number; lng: number } | null>(null)
-  const [pressure, setPressure] = useState(DEFAULT_PRESSURE)
-  const [sst, setSst] = useState(DEFAULT_SST)
-  const [wind1min, setWind1min] = useState(pressureToWind1min(DEFAULT_PRESSURE))
-  const [wind10min, setWind10min] = useState(Math.round(pressureToWind1min(DEFAULT_PRESSURE) * 0.88))
-  const [diameter, setDiameter] = useState(DEFAULT_DIAMETER)
-  const [loading, setLoading] = useState(false)
-  const [predictedTrack, setPredictedTrack] = useState<PredictedPoint[]>([])
-  const [analogs, setAnalogs] = useState<AnalogTyphoon[]>([])
-  const [explanation, setExplanation] = useState('')
+  const [phase,            setPhase]            = useState<Phase>('pick')
+  const [startPoint,       setStartPoint]       = useState<{ lat: number; lng: number } | null>(null)
+  const [pressure,         setPressure]         = useState(DEFAULT_PRESSURE)
+  const [sst,              setSst]              = useState(DEFAULT_SST)
+  const [wind1min,         setWind1min]         = useState(pressureToWind1min(DEFAULT_PRESSURE))
+  const [wind10min,        setWind10min]        = useState(Math.round(pressureToWind1min(DEFAULT_PRESSURE) * 0.88))
+  const [diameter,         setDiameter]         = useState(DEFAULT_DIAMETER)
+  const [loading,          setLoading]          = useState(false)
+  const [predictedTrack,   setPredictedTrack]   = useState<PredictedPoint[]>([])
+  const [analogs,          setAnalogs]          = useState<AnalogTyphoon[]>([])
+  const [explanation,      setExplanation]      = useState('')
   const [predictionMethod, setPredictionMethod] = useState<string>('analog_blending')
-  const [showAnalogs, setShowAnalogs] = useState(true)
+  const [showAnalogs,      setShowAnalogs]      = useState(true)
+
+  // ── P1: 타임라인 슬라이더 상태 ─────────────────────────
+  const [timelineIdx,  setTimelineIdx]  = useState(0)
+  const [isPlaying,    setIsPlaying]    = useState(false)
+  const [coneVisible,  setConeVisible]  = useState(true)
+  const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // 예측 결과가 새로 오면 자동 재생 시작
+  useEffect(() => {
+    if (predictedTrack.length === 0) return
+    setTimelineIdx(0)
+    setIsPlaying(true)
+  }, [predictedTrack])
+
+  // 재생 중일 때 인터벌 실행
+  useEffect(() => {
+    if (playIntervalRef.current) clearInterval(playIntervalRef.current)
+    if (!isPlaying || predictedTrack.length === 0) return
+
+    playIntervalRef.current = setInterval(() => {
+      setTimelineIdx(prev => {
+        if (prev >= predictedTrack.length - 1) {
+          setIsPlaying(false)
+          clearInterval(playIntervalRef.current!)
+          return prev
+        }
+        return prev + 1
+      })
+    }, 120)
+
+    return () => { if (playIntervalRef.current) clearInterval(playIntervalRef.current) }
+  }, [isPlaying, predictedTrack])
 
   useEffect(() => {
     const w1 = pressureToWind1min(pressure)
@@ -45,24 +77,18 @@ export default function App() {
   }, [pressure])
 
   function handleMapClick(lat: number, lng: number) {
-    if (phase === 'pick') {
-      setStartPoint({ lat, lng })
-      setPhase('config')
-    }
+    if (phase === 'pick') { setStartPoint({ lat, lng }); setPhase('config') }
   }
 
   function handleReset() {
-    setPhase('pick')
-    setStartPoint(null)
-    setPressure(DEFAULT_PRESSURE)
-    setSst(DEFAULT_SST)
+    setPhase('pick'); setStartPoint(null)
+    setPressure(DEFAULT_PRESSURE); setSst(DEFAULT_SST)
     setWind1min(pressureToWind1min(DEFAULT_PRESSURE))
     setWind10min(Math.round(pressureToWind1min(DEFAULT_PRESSURE) * 0.88))
     setDiameter(DEFAULT_DIAMETER)
-    setPredictedTrack([])
-    setAnalogs([])
-    setExplanation('')
+    setPredictedTrack([]); setAnalogs([]); setExplanation('')
     setPredictionMethod('analog_blending')
+    setTimelineIdx(0); setIsPlaying(false)
   }
 
   async function handlePredict() {
@@ -73,9 +99,7 @@ export default function App() {
       const result = await postPredict({
         start_lat:     startPoint.lat,
         start_lng:     startPoint.lng,
-        pressure,
-        sst,
-        month,
+        pressure, sst, month,
         wind_1min_ms:  wind1min  > 0 ? wind1min  : undefined,
         wind_10min_ms: wind10min > 0 ? wind10min : undefined,
         diameter_km:   diameter  > 0 ? diameter  : undefined,
@@ -92,15 +116,15 @@ export default function App() {
     }
   }
 
-  const lastPoint  = predictedTrack[predictedTrack.length - 1]
-  const peakPoint  = predictedTrack.length
+  const lastPoint = predictedTrack[predictedTrack.length - 1]
+  const peakPoint = predictedTrack.length
     ? predictedTrack.reduce((a, b) => b.wind_ms > a.wind_ms ? b : a, predictedTrack[0])
     : null
+  const currentPoint = predictedTrack[timelineIdx]
 
   const intensityLabel: Record<string, string> = {
     TD: '열대저압부', TS: '열대폭풍', TY: '태풍', STY: '강한태풍',
   }
-
   function pressureToIntensity(p: number): 'TD' | 'TS' | 'TY' | 'STY' {
     if (p > 997) return 'TD'
     if (p > 979) return 'TS'
@@ -109,12 +133,11 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', fontFamily: 'system-ui, sans-serif', background: '#f1f5f9' }}>
+    <div className="app-root">
 
       {/* ── 사이드바 ── */}
-      <aside style={sidebarStyle}>
+      <aside className="sidebar">
         <div style={logoStyle}>🌀 TyphoonPath</div>
-
         <StepIndicator phase={phase} />
 
         {/* STEP 1 */}
@@ -140,71 +163,43 @@ export default function App() {
         <Section disabled={phase === 'pick'}>
           <StepLabel step={2} label="기상 조건 설정" active={phase === 'config'} done={phase === 'result'} />
           <div>
-            <SliderRow
-              label="중심기압" value={pressure} unit="hPa"
-              min={850} max={1010} step={5}
+            <SliderRow label="중심기압" value={pressure} unit="hPa" min={850} max={1010} step={5}
               onChange={setPressure} disabled={phase !== 'config'}
               leftLabel="850 (강)" rightLabel="1010 (약)"
-              valueColor={pressure < 920 ? '#ef4444' : pressure < 960 ? '#fb923c' : '#0ea5e9'}
-            />
+              valueColor={pressure < 920 ? '#ef4444' : pressure < 960 ? '#fb923c' : '#0ea5e9'} />
             <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 10 }}>
               예상 강도: <b style={{ color: INTENSITY_COLOR[pressureToIntensity(pressure)] }}>{intensityLabel[pressureToIntensity(pressure)]}</b>
             </div>
-
-            <SliderRow
-              label="해수면 온도" value={sst} unit="°C"
-              min={20} max={35} step={1}
+            <SliderRow label="해수면 온도" value={sst} unit="°C" min={20} max={35} step={1}
               onChange={setSst} disabled={phase !== 'config'}
               leftLabel="20°C (약화)" rightLabel="35°C (강화)"
-              valueColor={sst >= 30 ? '#ef4444' : sst >= 27 ? '#fb923c' : '#0ea5e9'}
-            />
+              valueColor={sst >= 30 ? '#ef4444' : sst >= 27 ? '#fb923c' : '#0ea5e9'} />
             <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 10 }}>
               {sst >= 28 ? '⚡ 강화 가능 구역' : sst >= 26 ? '🔵 유지 구역' : '❄️ 약화 구역'}
             </div>
-
             <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', margin: '6px 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               상세 기상 조건 (선택)
             </div>
-
-            <SliderRow
-              label="1분 풍속" value={wind1min} unit="m/s"
-              min={0} max={85} step={1}
+            <SliderRow label="1분 풍속" value={wind1min} unit="m/s" min={0} max={85} step={1}
               onChange={setWind1min} disabled={phase !== 'config'}
               leftLabel="0" rightLabel="85"
-              valueColor={wind1min >= 50 ? '#ef4444' : wind1min >= 33 ? '#fb923c' : '#0ea5e9'}
-            />
-            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 8 }}>
-              미국 NHC 기준 · 기압에서 자동 추정
-            </div>
-
-            <SliderRow
-              label="10분 풍속" value={wind10min} unit="m/s"
-              min={0} max={75} step={1}
+              valueColor={wind1min >= 50 ? '#ef4444' : wind1min >= 33 ? '#fb923c' : '#0ea5e9'} />
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 8 }}>미국 NHC 기준 · 기압에서 자동 추정</div>
+            <SliderRow label="10분 풍속" value={wind10min} unit="m/s" min={0} max={75} step={1}
               onChange={setWind10min} disabled={phase !== 'config'}
               leftLabel="0" rightLabel="75"
-              valueColor={wind10min >= 44 ? '#ef4444' : wind10min >= 29 ? '#fb923c' : '#0ea5e9'}
-            />
-            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 8 }}>
-              WMO·KMA 기준 · 1분 풍속의 약 88%
-            </div>
-
-            <SliderRow
-              label="최대직경" value={diameter} unit="km"
-              min={100} max={2000} step={50}
+              valueColor={wind10min >= 44 ? '#ef4444' : wind10min >= 29 ? '#fb923c' : '#0ea5e9'} />
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 8 }}>WMO·KMA 기준 · 1분 풍속의 약 88%</div>
+            <SliderRow label="최대직경" value={diameter} unit="km" min={100} max={2000} step={50}
               onChange={setDiameter} disabled={phase !== 'config'}
               leftLabel="100" rightLabel="2000"
-              valueColor={diameter >= 1200 ? '#ef4444' : diameter >= 600 ? '#fb923c' : '#0ea5e9'}
-            />
+              valueColor={diameter >= 1200 ? '#ef4444' : diameter >= 600 ? '#fb923c' : '#0ea5e9'} />
             <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
               {diameter >= 1200 ? '🔴 초대형' : diameter >= 600 ? '🟠 대형' : diameter >= 300 ? '🔵 중형' : '⚪ 소형'} 태풍
             </div>
           </div>
-
-          <button
-            onClick={handlePredict}
-            disabled={phase !== 'config' || loading}
-            style={{ ...btnStyle, background: '#2563eb', color: '#fff', marginTop: 8 }}
-          >
+          <button onClick={handlePredict} disabled={phase !== 'config' || loading}
+            style={{ ...btnStyle, background: '#2563eb', color: '#fff', marginTop: 8 }}>
             {loading ? '🔄 경로 예측 중...' : '🌀 경로 예측하기'}
           </button>
         </Section>
@@ -213,22 +208,14 @@ export default function App() {
         {phase === 'result' && lastPoint && peakPoint && (
           <Section>
             <StepLabel step={3} label="예측 결과" active={true} done={false} />
-
-            {/* 예측 방법 배지 */}
             {(() => {
               const m = METHOD_LABEL[predictionMethod] ?? METHOD_LABEL['analog_blending']
               return (
-                <div style={{
-                  fontSize: 11, fontWeight: 700, color: m.color,
-                  background: m.color + '18', borderRadius: 6,
-                  padding: '3px 8px', display: 'inline-block', marginBottom: 6,
-                }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: m.color, background: m.color + '18', borderRadius: 6, padding: '3px 8px', display: 'inline-block', marginBottom: 6 }}>
                   {m.label}
                 </div>
               )
             })()}
-
-            {/* 요약 배지 */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
               <Badge label="지속시간" value={`${lastPoint.hour}h (${(lastPoint.hour / 24).toFixed(1)}일)`} color="#8b5cf6" />
               <Badge label="최종강도" value={lastPoint.intensity} color={INTENSITY_COLOR[lastPoint.intensity]} />
@@ -257,18 +244,24 @@ export default function App() {
               {peakPoint.wind_ms.toFixed(0)} m/s / {peakPoint.pressure.toFixed(0)} hPa
             </div>
 
+            {/* 원뿔 토글 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <input type="checkbox" id="showCone" checked={coneVisible} onChange={e => setConeVisible(e.target.checked)} />
+              <label htmlFor="showCone" style={{ fontSize: 12, color: '#475569', cursor: 'pointer' }}>
+                불확실성 원뿔 표시
+              </label>
+            </div>
+
             {/* 유사 태풍 토글 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <input type="checkbox" id="showAnalogs" checked={showAnalogs}
-                onChange={e => setShowAnalogs(e.target.checked)} />
+              <input type="checkbox" id="showAnalogs" checked={showAnalogs} onChange={e => setShowAnalogs(e.target.checked)} />
               <label htmlFor="showAnalogs" style={{ fontSize: 12, color: '#475569', cursor: 'pointer' }}>
                 유사 태풍 경로 표시 ({analogs.length}개)
               </label>
             </div>
-
             {showAnalogs && analogs.map((a, i) => (
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 2 }}>
-                <div style={{ width: 12, height: 3, background: ['#f59e0b','#a855f7','#06b6d4'][i], borderRadius: 2 }} />
+                <div style={{ width: 12, height: 3, background: ['#f59e0b', '#a855f7', '#06b6d4'][i], borderRadius: 2 }} />
                 <span style={{ fontWeight: 600 }}>{a.name_en} ({a.year})</span>
                 <span style={{ color: '#94a3b8' }}>유사도 {Math.round(a.similarity * 100)}%</span>
               </div>
@@ -293,10 +286,11 @@ export default function App() {
         </Section>
       </aside>
 
-      {/* ── 메인 지도 ── */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      {/* ── 메인 (지도 + 타임라인) ── */}
+      <main className="main-area">
         <Banner phase={phase} loading={loading} />
-        <div style={{ flex: 1 }}>
+
+        <div className="map-wrapper">
           <TyphoonMap
             startPoint={startPoint}
             predictedTrack={predictedTrack}
@@ -304,10 +298,77 @@ export default function App() {
             isPickingStart={phase === 'pick'}
             onMapClick={handleMapClick}
             showAnalogs={showAnalogs}
+            timelineIdx={timelineIdx}
+            onTimelineIdxChange={setTimelineIdx}
+            coneVisible={coneVisible}
           />
         </div>
+
+        {/* ── P1: 타임라인 슬라이더 (result 단계만 표시) ── */}
+        {phase === 'result' && predictedTrack.length > 0 && (
+          <div className="timeline-bar">
+            {/* 현재 시간 정보 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <button
+                onClick={() => setIsPlaying(p => !p)}
+                style={{
+                  background: isPlaying ? '#ef4444' : '#2563eb',
+                  color: '#fff', border: 'none', borderRadius: 6,
+                  padding: '5px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                {isPlaying ? '⏸ 일시정지' : '▶ 재생'}
+              </button>
+
+              {currentPoint && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#1e293b' }}>
+                    +{currentPoint.hour}h
+                  </span>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 5,
+                    background: INTENSITY_COLOR[currentPoint.intensity] + '22',
+                    color: INTENSITY_COLOR[currentPoint.intensity],
+                  }}>
+                    {currentPoint.intensity}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#64748b' }}>
+                    {currentPoint.pressure.toFixed(0)} hPa · {currentPoint.wind_ms.toFixed(0)} m/s
+                  </span>
+                  <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                    {currentPoint.lat.toFixed(2)}°N {currentPoint.lng.toFixed(2)}°E
+                  </span>
+                </div>
+              )}
+
+              <button
+                onClick={() => { setTimelineIdx(predictedTrack.length - 1); setIsPlaying(false) }}
+                style={{ marginLeft: 'auto', fontSize: 11, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+              >
+                끝으로 ⏭
+              </button>
+            </div>
+
+            {/* 슬라이더 */}
+            <input
+              type="range"
+              min={0}
+              max={predictedTrack.length - 1}
+              value={timelineIdx}
+              onChange={e => { setIsPlaying(false); setTimelineIdx(Number(e.target.value)) }}
+              style={{ width: '100%', accentColor: '#2563eb', height: 4 }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+              <span>+0h (현재)</span>
+              <span>+{Math.round((predictedTrack[Math.floor(predictedTrack.length / 2)]?.hour ?? 0))}h</span>
+              <span>+{lastPoint?.hour}h (종료)</span>
+            </div>
+          </div>
+        )}
+
+        {/* AI 해설 */}
         {explanation && (
-          <div style={{ padding: '12px 20px', background: '#fff', borderTop: '1px solid #e2e8f0', maxHeight: 180, overflowY: 'auto' }}>
+          <div className="ai-panel">
             <div style={{ fontSize: 12, fontWeight: 700, color: '#0ea5e9', marginBottom: 6 }}>🤖 AI 기상 해설</div>
             <p style={{ fontSize: 13, color: '#334155', lineHeight: 1.7, margin: 0 }}>{explanation}</p>
           </div>
@@ -322,12 +383,7 @@ export default function App() {
   )
 }
 
-// ── 스타일 ────────────────────────────────────────────────
-const sidebarStyle: CSSProperties = {
-  width: 300, background: '#fff', borderRight: '1px solid #e2e8f0',
-  padding: '16px 12px', display: 'flex', flexDirection: 'column',
-  gap: 4, overflowY: 'auto', flexShrink: 0,
-}
+// ── 스타일 상수 ──────────────────────────────────────────
 const logoStyle: CSSProperties = {
   fontSize: 18, fontWeight: 800, color: '#1e293b',
   marginBottom: 4, letterSpacing: '-0.02em',
@@ -413,10 +469,15 @@ function Banner({ phase, loading }: { phase: Phase; loading: boolean }) {
   const messages: Record<Phase, string> = {
     pick:   '🗺️ 지도에서 태풍 발생 위치를 클릭하세요',
     config: '⚙️ 기상 조건을 설정하고 경로를 예측하세요',
-    result: '🌀 예측 완료! 각 포인트를 클릭하면 상세 정보가 나타납니다',
+    result: '🌀 예측 완료! 타임라인으로 경로를 탐색하거나 포인트를 클릭하세요',
   }
   return (
-    <div style={{ padding: '10px 20px', background: phase === 'result' ? '#f0fdf4' : phase === 'config' ? '#eff6ff' : '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: 13, fontWeight: 600, color: phase === 'result' ? '#15803d' : phase === 'config' ? '#1d4ed8' : '#64748b' }}>
+    <div style={{
+      padding: '10px 20px',
+      background: phase === 'result' ? '#f0fdf4' : phase === 'config' ? '#eff6ff' : '#f8fafc',
+      borderBottom: '1px solid #e2e8f0', fontSize: 13, fontWeight: 600,
+      color: phase === 'result' ? '#15803d' : phase === 'config' ? '#1d4ed8' : '#64748b',
+    }}>
       {loading ? '⏳ 예측 계산 중...' : messages[phase]}
     </div>
   )
