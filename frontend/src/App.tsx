@@ -659,8 +659,3 @@ function Section({ children, disabled, style }: { children: ReactNode; disabled?
     </div>
   )
 }
- undefined, ...style }}>
-      {children}
-    </div>
-  )
-}
