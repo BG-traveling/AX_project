@@ -7,7 +7,7 @@
   "past_steps": 4,
   "future_steps": 60,
   "km_error_6h": 13.6,
-  "km_error_24h": 71.6,
+  "km_error_24h": 71.5,
   "km_error_72h": 0.0,
   "val_size": 21896,
   "train_size": 87587,

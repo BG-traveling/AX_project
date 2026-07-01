@@ -77,15 +77,29 @@ async def predict_typhoon(req: PredictRequest):
 
     # ── 0순위: LSTM (앙상블 3개 모두 로드된 경우만) ─────────
     if lstm_available():
+        print(f"[predict] LSTM 추론 시작 ({time.time()-t0:.1f}s)", flush=True)
         try:
-            predicted = lstm_predict(
-                start_lat=req.start_lat,
-                start_lng=req.start_lng,
-                pressure=req.pressure,
-                sst=req.sst,
-                month=req.month,
-                max_steps=80,
-            )
+            import asyncio
+            from concurrent.futures import ThreadPoolExecutor
+
+            def _run_lstm():
+                return lstm_predict(
+                    start_lat=req.start_lat,
+                    start_lng=req.start_lng,
+                    pressure=req.pressure,
+                    sst=req.sst,
+                    month=req.month,
+                    max_steps=80,
+                )
+
+            loop = asyncio.get_event_loop()
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                predicted = await asyncio.wait_for(
+                    loop.run_in_executor(executor, _run_lstm),
+                    timeout=20.0,
+                )
+
+            print(f"[predict] LSTM 추론 완료 ({time.time()-t0:.1f}s)", flush=True)
             if len(predicted) >= 5 and _is_plausible(predicted, req.start_lat, req.start_lng,
                                                        strict=True):  # LSTM: 엄격한 기준 (v1 남향 편향 차단)
                 method = "lstm"
@@ -97,10 +111,13 @@ async def predict_typhoon(req: PredictRequest):
                     meta.get("km_error_72h", 0),
                 )
             else:
-                logger.warning("LSTM 예측 기각 → Analog Blending")
+                print("[predict] LSTM 기각 → Analog Blending", flush=True)
                 predicted = []
+        except asyncio.TimeoutError:
+            print(f"[predict] LSTM 타임아웃(>20s) → Analog Blending", flush=True)
+            predicted = []
         except Exception as e:
-            logger.warning("LSTM 예측 실패 → Analog Blending: %s", e)
+            print(f"[predict] LSTM 예외 → Analog Blending: {e}", flush=True)
             predicted = []
 
     # ── 1순위: Analog Blending (검증 결과 가장 신뢰도 높음) ──
