@@ -72,9 +72,21 @@ export interface PredictRequest {
   diameter_km?: number
 }
 
+
 export interface PredictResponse {
   predicted_track: PredictedPoint[]
   analogs: AnalogTyphoon[]
   ai_explanation: string
-  prediction_method: 'ml' | 'analog_blending' | 'physics'
+  prediction_method: 'ml' | 'analog_blending' | 'physics' | 'lstm'
+}
+
+// ── 모델 비교 타입 ──────────────────────────────
+export interface CompareModelTrack {
+  method: string
+  label: string
+  track: PredictedPoint[]
+}
+
+export interface CompareResponse {
+  tracks: CompareModelTrack[]
 }

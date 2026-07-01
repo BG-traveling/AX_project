@@ -188,3 +188,47 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
     padding: 6px 10px 4px;
   }
 }
+
+/* ── 다크모드 ────────────────────────────────────────── */
+.app-root.dark {
+  background: #0f172a;
+}
+
+.app-root.dark .sidebar {
+  background: #1e293b;
+  border-right-color: #334155;
+  color: #e2e8f0;
+}
+
+.app-root.dark .timeline-bar {
+  background: #1e293b;
+  border-top-color: #334155;
+  color: #e2e8f0;
+}
+
+.app-root.dark .ai-panel {
+  background: #1e293b;
+  border-top-color: #334155;
+  color: #e2e8f0;
+}
+
+.app-root.dark .ai-panel p {
+  color: #cbd5e1;
+}
+
+/* 다크모드 모바일 헤더 */
+.app-root.dark .mobile-panel-header {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+
+/* 다크모드 범례 텍스트 보정 */
+.app-root.dark select {
+  background: #0f172a;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+.app-root.dark input[type="range"] {
+  accent-color: #3b82f6;
+}

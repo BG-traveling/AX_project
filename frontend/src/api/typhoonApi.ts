@@ -1,7 +1,7 @@
 import type {
   TyphoonSummary, TyphoonDetail,
   FeedbackResponse, UserVariables,
-  PredictResponse, PredictRequest,
+  PredictResponse, PredictRequest, CompareResponse,
 } from '../types/typhoon'
 
 // 개발: vite proxy(/api → localhost:8000)
@@ -65,5 +65,26 @@ export async function postPredict(req: PredictRequest): Promise<PredictResponse>
     body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error('예측 요청 실패')
+  return res.json()
+}
+
+export async function postPredictCompare(req: PredictRequest): Promise<CompareResponse> {
+  const body: Record<string, unknown> = {
+    start_lat: req.start_lat,
+    start_lng: req.start_lng,
+    pressure:  req.pressure,
+    sst:       req.sst,
+    month:     req.month,
+  }
+  if (req.wind_1min_ms  != null && req.wind_1min_ms  > 0) body.wind_1min_ms  = req.wind_1min_ms
+  if (req.wind_10min_ms != null && req.wind_10min_ms > 0) body.wind_10min_ms = req.wind_10min_ms
+  if (req.diameter_km   != null && req.diameter_km   > 0) body.diameter_km   = req.diameter_km
+
+  const res = await fetch(`${BASE}/predict/compare`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error('비교 예측 요청 실패')
   return res.json()
 }

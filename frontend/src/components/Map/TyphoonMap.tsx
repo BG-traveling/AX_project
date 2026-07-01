@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
-import { MapContainer, TileLayer, Polyline, Polygon, CircleMarker, Tooltip, Marker, useMapEvents, Popup } from 'react-leaflet'
+import { useEffect, useMemo } from 'react'
+import { MapContainer, TileLayer, WMSTileLayer, Polyline, Polygon, CircleMarker, Tooltip, Marker, useMapEvents, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import type { PredictedPoint, AnalogTyphoon } from '../../types/typhoon'
+import type { PredictedPoint, AnalogTyphoon, TrackPoint, CompareModelTrack } from '../../types/typhoon'
 import { INTENSITY_COLOR } from '../../types/typhoon'
 
 // ── 아이콘 ──────────────────────────────────────────────────
@@ -46,8 +46,15 @@ function makeTimeIcon(label: string, color: string) {
 
 const ANALOG_COLORS = ['#f59e0b', '#a855f7', '#06b6d4']
 
+// ── 모델 비교 색상 ────────────────────────────────────────
+const COMPARE_COLORS: Record<string, string> = {
+  lstm:            '#dc2626',
+  ml:              '#7c3aed',
+  analog_blending: '#0891b2',
+  physics:         '#65a30d',
+}
+
 // ── 불확실성 원뿔 계산 ────────────────────────────────────
-// NHC 방식: 시간이 갈수록 반경이 넓어지는 예측 불확실성 시각화
 function computeCone(track: PredictedPoint[]): [number, number][] {
   if (track.length < 2) return []
 
@@ -55,11 +62,9 @@ function computeCone(track: PredictedPoint[]): [number, number][] {
   const right: [number, number][] = []
 
   track.forEach((p, i) => {
-    // 반경: 0h=30km, 24h≈90km, 72h≈180km, 120h≈300km (NHC 근사)
     const radiusKm = Math.max(30, 30 + (p.hour / 120) * 270)
     const cosLat = Math.cos((p.lat * Math.PI) / 180) || 0.01
 
-    // 이동 방향 벡터
     let dlat = 0, dlng = 0
     if (i < track.length - 1) {
       dlat = track[i + 1].lat - p.lat
@@ -70,7 +75,6 @@ function computeCone(track: PredictedPoint[]): [number, number][] {
     }
     const len = Math.sqrt(dlat * dlat + dlng * dlng) || 1
 
-    // 수직 방향 (90° 회전)
     const perpLat = -dlng / len
     const perpLng = dlat / len
 
@@ -84,10 +88,10 @@ function computeCone(track: PredictedPoint[]): [number, number][] {
     ])
   })
 
-  // 다각형: 왼쪽 경계 순방향 + 오른쪽 경계 역방향
   return [...left, ...[...right].reverse()]
 }
 
+// ── Props ─────────────────────────────────────────────────
 interface Props {
   startPoint: { lat: number; lng: number } | null
   predictedTrack: PredictedPoint[]
@@ -95,11 +99,14 @@ interface Props {
   isPickingStart: boolean
   onMapClick: (lat: number, lng: number) => void
   showAnalogs: boolean
-  /** 타임라인 슬라이더 인덱스 (App에서 제어) */
   timelineIdx: number
   onTimelineIdxChange: (idx: number) => void
-  /** 불확실성 원뿔 표시 여부 */
   coneVisible: boolean
+  // P2 features
+  historicalTrack?: TrackPoint[]        // P2-1: 과거 태풍 경로
+  darkMode?: boolean                     // P2-2: 다크모드 타일
+  compareTracks?: CompareModelTrack[]    // P2-3: 모델 비교 경로
+  sstVisible?: boolean                   // P2-4: SST 히트맵
 }
 
 function ClickHandler({ onMapClick, isPickingStart }: { onMapClick: Props['onMapClick']; isPickingStart: boolean }) {
@@ -110,11 +117,18 @@ function ClickHandler({ onMapClick, isPickingStart }: { onMapClick: Props['onMap
 export default function TyphoonMap({
   startPoint, predictedTrack, analogs, isPickingStart, onMapClick,
   showAnalogs, timelineIdx, onTimelineIdxChange, coneVisible,
+  historicalTrack = [], darkMode = false, compareTracks = [], sstVisible = false,
 }: Props) {
-  // 새 예측 들어오면 처음부터 재생 (App의 isPlaying 상태로 제어)
   useEffect(() => {
     if (predictedTrack.length > 0) onTimelineIdxChange(0)
   }, [predictedTrack])
+
+  // P2-4: SST date (7일 전 — GIBS 데이터 지연 고려)
+  const sstDate = useMemo(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 7)
+    return d.toISOString().slice(0, 10)
+  }, [])
 
   const visibleTrack = predictedTrack.slice(0, timelineIdx + 1)
   const isAnimating  = timelineIdx < predictedTrack.length - 1 && predictedTrack.length > 0
@@ -130,8 +144,26 @@ export default function TyphoonMap({
     })
   }
 
-  // 불확실성 원뿔 (전체 예측 경로 기준으로 계산, 현재 시간까지만 표시)
+  // 불확실성 원뿔
   const conePositions = coneVisible ? computeCone(visibleTrack) : []
+
+  // P2-1: 과거 태풍 — 강도별 세그먼트
+  const historicalSegments: { positions: [number, number][]; color: string }[] = []
+  for (let i = 0; i < historicalTrack.length - 1; i++) {
+    const p = historicalTrack[i]
+    historicalSegments.push({
+      positions: [[p.lat, p.lng], [historicalTrack[i + 1].lat, historicalTrack[i + 1].lng]],
+      color: INTENSITY_COLOR[p.intensity as keyof typeof INTENSITY_COLOR] ?? '#94a3b8',
+    })
+  }
+
+  // P2-2: 타일 레이어 URL
+  const tileUrl = darkMode
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+  const tileAttr = darkMode
+    ? '&copy; <a href="https://carto.com/">CARTO</a>'
+    : '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
 
   return (
     <MapContainer
@@ -139,11 +171,80 @@ export default function TyphoonMap({
       zoom={4}
       style={{ width: '100%', height: '100%', cursor: isPickingStart ? 'crosshair' : 'grab' }}
     >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
-      />
+      {/* P2-2: 다크/라이트 타일 전환 */}
+      <TileLayer key={darkMode ? 'dark' : 'light'} url={tileUrl} attribution={tileAttr} />
+
+      {/* P2-4: SST 히트맵 WMS 레이어 */}
+      {sstVisible && (
+        <WMSTileLayer
+          key={`sst-${sstDate}`}
+          url="https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi"
+          layers="GHRSST_L4_MUR_Sea_Surface_Temperature"
+          format="image/png"
+          transparent={true}
+          opacity={0.65}
+          version="1.1.1"
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          params={{ TIME: sstDate } as any}
+          attribution="NASA GIBS"
+        />
+      )}
+
       <ClickHandler onMapClick={onMapClick} isPickingStart={isPickingStart} />
+
+      {/* ── P2-1: 과거 태풍 경로 (강도별 색상) ── */}
+      {historicalSegments.map((seg, i) => (
+        <Polyline
+          key={`hist-seg-${i}`}
+          positions={seg.positions}
+          color={seg.color}
+          weight={3}
+          opacity={0.75}
+          dashArray="8 4"
+        />
+      ))}
+      {historicalTrack.length > 0 && historicalTrack.map((p, i) => {
+        const isFirst = i === 0
+        const isLast  = i === historicalTrack.length - 1
+        const isDay   = i > 0 && i % 4 === 0   // 매 4포인트 = 약 24h (6h 간격 가정)
+        if (!isFirst && !isLast && !isDay) return null
+        return (
+          <CircleMarker
+            key={`hist-pt-${i}`}
+            center={[p.lat, p.lng]}
+            radius={isFirst || isLast ? 7 : 5}
+            fillColor={INTENSITY_COLOR[p.intensity as keyof typeof INTENSITY_COLOR] ?? '#94a3b8'}
+            color="#fff"
+            weight={2}
+            fillOpacity={0.9}
+          >
+            <Popup>
+              <div style={{ fontSize: 12, lineHeight: 1.6 }}>
+                <b>{isFirst ? '🌀 시작' : isLast ? '⭕ 소멸' : `⏱ ${p.dt?.slice(0, 16) ?? ''}`}</b><br />
+                강도: <b style={{ color: INTENSITY_COLOR[p.intensity as keyof typeof INTENSITY_COLOR] }}>{p.intensity}</b><br />
+                기압: {p.pressure ? `${p.pressure} hPa` : '—'}<br />
+                풍속: {p.wind_ms?.toFixed(0)} m/s
+              </div>
+            </Popup>
+          </CircleMarker>
+        )
+      })}
+
+      {/* ── P2-3: 모델 비교 경로 ── */}
+      {compareTracks.map((ct) => {
+        const color = COMPARE_COLORS[ct.method] ?? '#6b7280'
+        const positions: [number, number][] = ct.track.map(p => [p.lat, p.lng])
+        return (
+          <Polyline key={`cmp-${ct.method}`} positions={positions} color={color} weight={3} opacity={0.8} dashArray="10 4">
+            <Tooltip sticky>
+              <span style={{ fontSize: 12 }}>
+                <b style={{ color }}>{ct.label}</b><br />
+                포인트 {ct.track.length}개 / {ct.track[ct.track.length - 1]?.hour ?? 0}h
+              </span>
+            </Tooltip>
+          </Polyline>
+        )
+      })}
 
       {/* ── 불확실성 원뿔 (Cone of Uncertainty) ── */}
       {conePositions.length >= 3 && (

@@ -76,3 +76,12 @@ class PredictResponse(BaseModel):
     analogs: list[AnalogTyphoon]
     ai_explanation: str
     prediction_method: str = "analog_blending"   # "ml" | "analog_blending" | "physics"
+
+# ── 모델 비교 응답 스키마 ─────────────────────────
+class ModelTrack(BaseModel):
+    method: str         # "lstm" | "ml" | "analog_blending" | "physics"
+    label: str          # 표시용 레이블
+    track: list[PredictedPoint]
+
+class CompareResponse(BaseModel):
+    tracks: list[ModelTrack]

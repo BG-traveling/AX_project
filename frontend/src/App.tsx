@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import TyphoonMap from './components/Map/TyphoonMap'
-import { postPredict } from './api/typhoonApi'
-import type { PredictedPoint, AnalogTyphoon } from './types/typhoon'
+import { postPredict, postPredictCompare } from './api/typhoonApi'
+import type { PredictedPoint, AnalogTyphoon, CompareModelTrack } from './types/typhoon'
 import { INTENSITY_COLOR } from './types/typhoon'
+import { useYears, useTyphoonList, useTyphoonDetail } from './hooks/useTyphoonData'
 
 type Phase = 'pick' | 'config' | 'result'
 
@@ -38,6 +39,24 @@ export default function App() {
   const [predictionMethod, setPredictionMethod] = useState<string>('analog_blending')
   const [showAnalogs,      setShowAnalogs]      = useState(true)
   const [mobileOpen,       setMobileOpen]       = useState(false)
+
+  // ── P2-1: 과거 태풍 검색 ───────────────────────────────
+  const [selectedYear,     setSelectedYear]     = useState<number | null>(null)
+  const [selectedTyphoon,  setSelectedTyphoon]  = useState<string | null>(null)
+  const { years }                               = useYears()
+  const { list: typhoonList }                   = useTyphoonList(selectedYear)
+  const { detail: historicalDetail }            = useTyphoonDetail(selectedTyphoon)
+
+  // ── P2-2: 다크모드 ────────────────────────────────────
+  const [darkMode,         setDarkMode]         = useState(false)
+
+  // ── P2-3: 모델 비교 ───────────────────────────────────
+  const [compareMode,      setCompareMode]      = useState(false)
+  const [compareTracks,    setCompareTracks]    = useState<CompareModelTrack[]>([])
+  const [compareLoading,   setCompareLoading]   = useState(false)
+
+  // ── P2-4: SST 히트맵 ──────────────────────────────────
+  const [sstVisible,       setSstVisible]       = useState(false)
 
   // ── P1: 타임라인 슬라이더 상태 ─────────────────────────
   const [timelineIdx,  setTimelineIdx]  = useState(0)
@@ -96,6 +115,28 @@ export default function App() {
     setPredictedTrack([]); setAnalogs([]); setExplanation('')
     setPredictionMethod('analog_blending')
     setTimelineIdx(0); setIsPlaying(false)
+    setCompareMode(false); setCompareTracks([])
+  }
+
+  async function handleCompare() {
+    if (!startPoint) return
+    setCompareLoading(true)
+    try {
+      const month = new Date().getMonth() + 1
+      const result = await postPredictCompare({
+        start_lat: startPoint.lat, start_lng: startPoint.lng,
+        pressure, sst, month,
+        wind_1min_ms:  wind1min  > 0 ? wind1min  : undefined,
+        wind_10min_ms: wind10min > 0 ? wind10min : undefined,
+        diameter_km:   diameter  > 0 ? diameter  : undefined,
+      })
+      setCompareTracks(result.tracks)
+      setCompareMode(true)
+    } catch (e) {
+      alert('비교 예측 실패: ' + (e as Error).message)
+    } finally {
+      setCompareLoading(false)
+    }
   }
 
   async function handlePredict() {
@@ -146,7 +187,7 @@ export default function App() {
     : '패널 열기'
 
   return (
-    <div className="app-root">
+    <div className={`app-root${darkMode ? ' dark' : ''}`}>
 
       {/* ── 사이드바 ── */}
       <aside className={`sidebar${mobileOpen ? '' : ' panel-collapsed'}`}>
@@ -154,12 +195,21 @@ export default function App() {
         {/* 패널 헤더 — 로고 + 모바일 토글 버튼 (항상 노출) */}
         <div className="mobile-panel-header">
           <div style={logoStyle}>🌀 TyphoonPath</div>
-          <button
-            className="mobile-panel-toggle"
-            onClick={() => setMobileOpen(o => !o)}
-          >
-            {mobileOpen ? '▼ 닫기' : `▲ ${panelLabel}`}
-          </button>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button
+              onClick={() => setDarkMode(d => !d)}
+              style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', padding: '2px 4px', lineHeight: 1 }}
+              title={darkMode ? '라이트모드' : '다크모드'}
+            >
+              {darkMode ? '☀️' : '🌙'}
+            </button>
+            <button
+              className="mobile-panel-toggle"
+              onClick={() => setMobileOpen(o => !o)}
+            >
+              {mobileOpen ? '▼ 닫기' : `▲ ${panelLabel}`}
+            </button>
+          </div>
         </div>
 
         <StepIndicator phase={phase} />
@@ -297,6 +347,91 @@ export default function App() {
           </Section>
         )}
 
+        {/* ── P2-1: 과거 태풍 검색 ── */}
+        <Section>
+          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, color: '#22c55e' }}>📚 과거 태풍 검색</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <select
+              value={selectedYear ?? ''}
+              onChange={e => { setSelectedYear(e.target.value ? Number(e.target.value) : null); setSelectedTyphoon(null) }}
+              style={{ fontSize: 12, padding: '4px 6px', borderRadius: 6, border: '1px solid #e2e8f0', background: darkMode ? '#0f172a' : '#fff', color: darkMode ? '#e2e8f0' : '#1e293b' }}
+            >
+              <option value="">— 연도 선택 —</option>
+              {[...years].sort((a, b) => b - a).map(y => (
+                <option key={y} value={y}>{y}년</option>
+              ))}
+            </select>
+            {selectedYear && (
+              <select
+                value={selectedTyphoon ?? ''}
+                onChange={e => setSelectedTyphoon(e.target.value || null)}
+                style={{ fontSize: 12, padding: '4px 6px', borderRadius: 6, border: '1px solid #e2e8f0', background: darkMode ? '#0f172a' : '#fff', color: darkMode ? '#e2e8f0' : '#1e293b' }}
+              >
+                <option value="">— 태풍 선택 —</option>
+                {typhoonList.map(t => (
+                  <option key={t.id} value={t.id}>{t.name_en} (No.{t.season_no})</option>
+                ))}
+              </select>
+            )}
+            {historicalDetail && (
+              <div style={{ fontSize: 11, background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 6, padding: '5px 8px', color: '#15803d' }}>
+                📍 {historicalDetail.name_en} ({historicalDetail.year}) — 트랙 {historicalDetail.track.length}포인트
+                <button
+                  onClick={() => { setSelectedTyphoon(null); setSelectedYear(null) }}
+                  style={{ marginLeft: 6, fontSize: 10, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  제거
+                </button>
+              </div>
+            )}
+          </div>
+        </Section>
+
+        {/* ── P2-3/P2-4: 레이어 컨트롤 ── */}
+        <Section>
+          <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, color: '#7c3aed' }}>🗂️ 레이어 & 분석</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <input type="checkbox" id="sstToggle" checked={sstVisible} onChange={e => setSstVisible(e.target.checked)} />
+            <label htmlFor="sstToggle" style={{ fontSize: 12, color: darkMode ? '#cbd5e1' : '#475569', cursor: 'pointer' }}>
+              🌡️ SST 히트맵 (NASA GIBS)
+            </label>
+          </div>
+          {phase === 'config' || phase === 'result' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button
+                onClick={handleCompare}
+                disabled={!startPoint || compareLoading}
+                style={{ ...btnStyle, background: compareMode ? '#7c3aed' : '#f3f0ff', color: compareMode ? '#fff' : '#7c3aed', border: '1px solid #a78bfa', fontSize: 12, padding: '7px 0' }}
+              >
+                {compareLoading ? '⏳ 비교 중...' : compareMode ? '📊 모델 비교 중 (켜짐)' : '📊 AI 모델 비교하기'}
+              </button>
+              {compareMode && (
+                <>
+                  {compareTracks.map(ct => {
+                    const colors: Record<string, string> = { lstm: '#dc2626', ml: '#7c3aed', analog_blending: '#0891b2', physics: '#65a30d' }
+                    const c = colors[ct.method] ?? '#6b7280'
+                    return (
+                      <div key={ct.method} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+                        <div style={{ width: 20, height: 3, background: c, borderRadius: 2, flexShrink: 0 }} />
+                        <span style={{ color: c, fontWeight: 700 }}>{ct.label}</span>
+                        <span style={{ color: '#94a3b8' }}>{ct.track.length > 0 ? `${ct.track[ct.track.length-1].hour}h` : '—'}</span>
+                      </div>
+                    )
+                  })}
+                  <button
+                    onClick={() => { setCompareMode(false); setCompareTracks([]) }}
+                    style={{ fontSize: 11, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textAlign: 'left' }}
+                  >
+                    비교 모드 끄기
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div style={{ fontSize: 11, color: '#94a3b8' }}>시작점 설정 후 비교 가능합니다</div>
+          )}
+        </Section>
+
         {/* 강도 범례 */}
         <Section style={{ marginTop: 'auto' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>강도 범례</div>
@@ -325,6 +460,10 @@ export default function App() {
             timelineIdx={timelineIdx}
             onTimelineIdxChange={setTimelineIdx}
             coneVisible={coneVisible}
+            historicalTrack={historicalDetail?.track}
+            darkMode={darkMode}
+            compareTracks={compareMode ? compareTracks : []}
+            sstVisible={sstVisible}
           />
           {/* 모바일: 패널 닫힌 상태에서 플로팅 버튼 */}
           {!mobileOpen && phase !== 'pick' && (
@@ -349,8 +488,7 @@ export default function App() {
                   padding: '5px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
                 }}
               >
-                {isPlaying ? '⏸ 일시정지' : '▶ 재생'}
-              </button>
+                   </button>
 
               {currentPoint && (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -517,6 +655,11 @@ function Banner({ phase, loading }: { phase: Phase; loading: boolean }) {
 function Section({ children, disabled, style }: { children: ReactNode; disabled?: boolean; style?: CSSProperties }) {
   return (
     <div style={{ padding: '8px 0', borderTop: '1px solid #f1f5f9', opacity: disabled ? 0.45 : 1, pointerEvents: disabled ? 'none' : undefined, ...style }}>
+      {children}
+    </div>
+  )
+}
+ undefined, ...style }}>
       {children}
     </div>
   )

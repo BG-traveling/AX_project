@@ -146,6 +146,9 @@ def _load_models():
 
 
 def lstm_available() -> bool:
+    import os
+    if os.getenv("DISABLE_LSTM", "").lower() in ("1", "true", "yes"):
+        return False
     return _load_models() is not None
 
 
