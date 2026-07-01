@@ -37,6 +37,7 @@ export default function App() {
   const [explanation,      setExplanation]      = useState('')
   const [predictionMethod, setPredictionMethod] = useState<string>('analog_blending')
   const [showAnalogs,      setShowAnalogs]      = useState(true)
+  const [mobileOpen,       setMobileOpen]       = useState(false)
 
   // ── P1: 타임라인 슬라이더 상태 ─────────────────────────
   const [timelineIdx,  setTimelineIdx]  = useState(0)
@@ -75,6 +76,12 @@ export default function App() {
     setWind1min(w1)
     setWind10min(Math.round(w1 * 0.88))
   }, [pressure])
+
+  // 모바일 패널 phase 자동 연동
+  useEffect(() => {
+    if (phase === 'config') setMobileOpen(true)   // 조건 설정 시 패널 열기
+    if (phase === 'result') setMobileOpen(false)  // 결과 확인 시 지도 전체 표시
+  }, [phase])
 
   function handleMapClick(lat: number, lng: number) {
     if (phase === 'pick') { setStartPoint({ lat, lng }); setPhase('config') }
@@ -132,12 +139,29 @@ export default function App() {
     return 'STY'
   }
 
+  const panelLabel = phase === 'result'
+    ? '📊 결과 보기'
+    : phase === 'config'
+    ? '⚙️ 조건 설정'
+    : '패널 열기'
+
   return (
     <div className="app-root">
 
       {/* ── 사이드바 ── */}
-      <aside className="sidebar">
-        <div style={logoStyle}>🌀 TyphoonPath</div>
+      <aside className={`sidebar${mobileOpen ? '' : ' panel-collapsed'}`}>
+
+        {/* 패널 헤더 — 로고 + 모바일 토글 버튼 (항상 노출) */}
+        <div className="mobile-panel-header">
+          <div style={logoStyle}>🌀 TyphoonPath</div>
+          <button
+            className="mobile-panel-toggle"
+            onClick={() => setMobileOpen(o => !o)}
+          >
+            {mobileOpen ? '▼ 닫기' : `▲ ${panelLabel}`}
+          </button>
+        </div>
+
         <StepIndicator phase={phase} />
 
         {/* STEP 1 */}
@@ -302,12 +326,20 @@ export default function App() {
             onTimelineIdxChange={setTimelineIdx}
             coneVisible={coneVisible}
           />
+          {/* 모바일: 패널 닫힌 상태에서 플로팅 버튼 */}
+          {!mobileOpen && phase !== 'pick' && (
+            <button
+              className="mobile-fab"
+              onClick={() => setMobileOpen(true)}
+            >
+              {phase === 'result' ? '📊 결과 보기' : '⚙️ 조건 설정'}
+            </button>
+          )}
         </div>
 
         {/* ── P1: 타임라인 슬라이더 (result 단계만 표시) ── */}
         {phase === 'result' && predictedTrack.length > 0 && (
           <div className="timeline-bar">
-            {/* 현재 시간 정보 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <button
                 onClick={() => setIsPlaying(p => !p)}
@@ -349,7 +381,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* 슬라이더 */}
             <input
               type="range"
               min={0}
@@ -386,7 +417,7 @@ export default function App() {
 // ── 스타일 상수 ──────────────────────────────────────────
 const logoStyle: CSSProperties = {
   fontSize: 18, fontWeight: 800, color: '#1e293b',
-  marginBottom: 4, letterSpacing: '-0.02em',
+  letterSpacing: '-0.02em',
 }
 const btnStyle: CSSProperties = {
   width: '100%', padding: '10px 0', border: 'none',
