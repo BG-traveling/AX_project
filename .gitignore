@@ -1,3 +1,6 @@
+# 구버전 파일폴더
+_archive/
+
 # Python
 __pycache__/
 *.py[cod]
